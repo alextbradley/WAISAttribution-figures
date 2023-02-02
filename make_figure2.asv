@@ -72,20 +72,19 @@ figure(1); clf;
 positions = [0.1, 0.54, 0.35, 0.35;
              0.585, 0.54, 0.35, 0.35;
              0.1, 0.1, 0.35, 0.35;
-              0.585, 0.1, 0.35, 0.35];
+              0.57, 0.1, 0.35, 0.35];
 %
 % (a) Bathymetry
 %  
 ax(1) = subplot('Position', positions(1,:));box on;
-cmap = cmocean('ice', 100);
-cmap = cmap(1:90,:);
+cmap = cmocean('haline');
 hold on
 contourf(x/1e3,y/1e3,bed', 50, 'linestyle', 'none');
 xl = xlabel('x (km)');
 yl = ylabel('y (km)');
 colormap(ax(1), cmap);
-ax(1).YLim = [-24.75,24.75];
-ax(1).XLim = [0,300]; %adjust x and y lims so that box is visible
+ax(1).YLim = [-25,25];
+ax(1).XLim = [-1,300]; %adjust x and y lims so that box is visible
 c = colorbar;
 c.Label.String = 'bed depth (m)';
 
@@ -96,7 +95,6 @@ ax(1).CLim = [-1200,-500];
 c.Position(1) = 0.455;
 c.Position(3) = 0.01;
 c.FontSize = 14;
-c.Label.FontSize = 16;
 c.Ticks = -1200:200:-600;
 
 % 
@@ -106,7 +104,7 @@ c.Ticks = -1200:200:-600;
 ax(2) = subplot('Position', positions(3,:));box on;
 hold on; box on;
 %ax(2).YLim = [-24.5,25];
-ax(2).XLim = [0,300]; %adjust x and y lims so that box is visible
+ax(2).XLim = [-1,300]; %adjust x and y lims so that box is visible
 ax(2).YLim = [-1200,500];
 fill([x/1e3; flip(x)/1e3], [-1200*ones(size(x)); flip(bed(:,floor(ny/2)))], [220,220,220]/256, 'linestyle', 'none','FaceAlpha', 0.75);
 ax(2).XTick = 0:50:300;
@@ -125,8 +123,8 @@ for i = 1:sz(2)
 		fill(vx,vy, [0.68,0.85, 0.9],'linestyle', 'none', 'FaceAlpha', 0.75)
 	end
 	
-	plot(x/1e3, smooth(ss(:,floor(ny/2))), 'color', colmap(i,:), 'linewidth', 1.2);
-	plot(x/1e3, smooth(bb(:,floor(ny/2))), 'color', colmap(i,:), 'linewidth', 1.2);
+	plot(x/1e3, ss(:,floor(ny/2)), 'color', colmap(i,:));
+	plot(x/1e3, bb(:,floor(ny/2)), 'color', colmap(i,:));
 	
 end
 
