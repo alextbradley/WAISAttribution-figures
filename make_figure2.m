@@ -40,7 +40,7 @@ hf       = cell(sz);  %ice thickness
 sf       = cell(sz);  %ice surface
 mf       = cell(sz);  %melt rate
 grf      = cell(sz);  %grounded fraction
-bf 	 = cell(sz);  %ice bottom
+bf 	     = cell(sz);  %ice bottom
 for i = 1:sz(2)
 	%filename
 	fname =  strcat('data/ATTR_', run_nums(i), '/outfile.nc');
@@ -80,7 +80,8 @@ ax(1) = subplot('Position', positions(1,:));box on;
 cmap = cmocean('ice', 100);
 cmap = cmap(1:90,:);
 hold on
-contourf(x/1e3,y/1e3,bed', 50, 'linestyle', 'none');
+%contourf(x/1e3,y/1e3,bed', 50, 'linestyle', 'none');
+imagesc(x/1e3,y/1e3,bed'); set(gca, 'YDir', 'normal')
 xl = xlabel('x (km)');
 yl = ylabel('y (km)');
 colormap(ax(1), cmap);
@@ -111,7 +112,11 @@ ax(2).YLim = [-1200,500];
 fill([x/1e3; flip(x)/1e3], [-1200*ones(size(x)); flip(bed(:,floor(ny/2)))], [220,220,220]/256, 'linestyle', 'none','FaceAlpha', 0.75);
 ax(2).XTick = 0:50:300;
 
+
 % add the ice bases
+plot(x/1e3, smooth(s(:,floor(ny/2))), 'k--', 'linewidth', 1.2);
+plot(x/1e3, smooth(b(:,floor(ny/2))), 'k--', 'linewidth', 1.2); %pre-melt application
+
 colmap = parula(sz(2) + 1);
 for i = 1:sz(2)
 
@@ -148,12 +153,15 @@ fill([x/1e3; flip(x)/1e3], [-1200*ones(size(x)); flip(bed(:,floor(ny/2)))], [220
 
 
 % add the ice bases
+idx = (gr(:, floor(ny/2)) < 1);
+plot(x(idx)/1e3, smooth(b(idx,floor(ny/2))), 'k--', 'linewidth', 1.2); %pre-melt application
+
 colmap = parula(sz(2) + 1);
 %fill in the ice
 i = sz(2);
 ss = cell2mat(sf(i));
-	bb = cell2mat(bf(i));
-    grfrac = cell2mat(grf(i));
+bb = cell2mat(bf(i));
+grfrac = cell2mat(grf(i));
 
 vx = [x/1e3; flip(x)/1e3];
 vy = [(bb(:,floor(ny/2))); flip(smooth(ss(:,floor(ny/2))))];
