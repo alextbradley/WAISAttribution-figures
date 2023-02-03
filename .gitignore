@@ -1,2 +1,7 @@
 *.mat
 *.nc
+*.idraw
+*.pdf
+*.png
+*.eps
+*.svg
