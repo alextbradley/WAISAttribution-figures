@@ -32,7 +32,7 @@ dy   = 1000; %grid resolution
 gammas        = 1:5; %1:5 correspond to 8:12 * 1e-3
 gammas_act    = 8:12; %what do these gamma value actually mean
 ensembles     = 1; %1: anthro trend, 2: no trend
-members       = 5;
+members       = 5; %5 is good exampel
 sz            = [5,1]; %size of ensemble
 ss = load('data/WAVI-ensemble-data.mat');
 s = ss.ss;
@@ -70,7 +70,7 @@ end %end gendata flag
 
 %% make panels a and b
 % Plot data
-tshow = [20,40,60,80]; %times to show in b
+tshow = [20,40,60,80, 100]; %times to show in b
 colmapb = cmocean('haline',length(tshow)+1); %colourmap in b
 colmap = flipud(cmocean('matter',sz(1) + 1)); %colourmap in a
 positions = [   0.07 , 0.17, 0.4, 0.5; 
@@ -147,8 +147,8 @@ end %end loop over time pts
 ax(2).XLabel.String = '$\gamma_T~\times 10^{3}$';
 ax(2).XLabel.Interpreter = 'latex';
 ax(2).YLabel.String = 'SLR (mm)';
-ax(2).YLim = [-.5,3];
-ax(2).YTick = 0:3;
+ax(2).YLim = [-.5,4];
+ax(2).YTick = 0:4;
 ax(2).XTick = 8:12;
 
 %
@@ -158,7 +158,7 @@ for i =1:2
     ax(i).FontSize = 14;
     ax(i).FontName ='GillSans';
 end
-ax(1).Position(4) = 0.5; %make smaller to accomodate forcing
+ax(1).Position(4) = 0.5; %make smaller to accomodate forcing plot
 ax(1).YTick = -1:2:3;
 
 %
@@ -216,12 +216,10 @@ if gendata
             mm = s_mit(ig,ensemble,member,it).m;
             melt_mit(ig,it,:,:) = mm;
 
-            %also work out D(ig, it):
+            %get the calibration coefficient
             hh = s(ig,ensemble,member).h(:,:,idx); %ice thickness at this point
-            base = -918/1028 *hh;
-            idx = (base < -600) & (mm ~= 0) & (mw ~=0); %points counted in the comparison
-            dM = mm - mw;
-            D(ig,it) = mean(mean(dM(idx)));
+            D(ig,it) = get_D(mm,mw,hh);
+
 
         end
     end
@@ -230,8 +228,11 @@ end %end gendata flag
 
 %% make panel d
 figure(4); clf; 
-D = abs(D);
-DD = [D; mean(D)];h = heatmap(abs(DD));
+Dt = D'; %take transpose so that times go down
+DD = [Dt; mean(Dt)];h = heatmap(DD); %take the 
+Dbar = mean(Dt); %taking means in time (first axis of D')
+
+ h.CellLabelFormat = '%.0f';
 ax =gca;
 ax.YDisplayLabels = {'0', '25', '50', '75', '100', ''};
 ax.XDisplayLabels = {'8', '9', '10', '11', '12'};
@@ -248,12 +249,11 @@ fig.Position(3:4) = [500,300];
 %% make panel e
 % plot of likelihood contribution from Dbar
 figure(5); clf; hold on; box on;
-Dbar = mean(D);
 
 %create a spline fit to this 
 
-xx = linspace(min(gammas_act), max(gammas_act));
-sigma_m = [1,5,10,25]; 
+xx = linspace(min(gammas_act), max(gammas_act), 5e3);
+sigma_m = [5,10,15,20]; 
 
 cmap = flipud(cmocean('amp', length(sigma_m) + 2));
 for ism = 1:length(sigma_m)
@@ -263,9 +263,10 @@ for ism = 1:length(sigma_m)
     yy = yy/sum(yy); %normalize (grid spacing is 1)
 
     f = fit(gammas_act',yy','Gauss1');
-    plot(xx, f(xx), 'linewidth', 2, 'Color',cmap(ism+1,:))
+    ff = f(xx); ff(ff > 1) = 1;
+    plot(xx, ff, 'linewidth', 2, 'Color',cmap(ism+1,:))
     %plot(gammas_act, yy,'o', 'markeredgecolor', 'k', 'markerfaceColor',cmap(ism+1,:))
-
+    
 end
 fig = gcf;
 fig.Position(3:4) = [500,300];
@@ -273,6 +274,7 @@ fig.Position(3:4) = [500,300];
 ax = gca; 
 ax.FontSize = fs;
 ax.XTick = gammas_act;
+ax.YLim = [0,1];
 ax.FontName = 'GillSans';
 %ax.YLabel.String = 'density';
 
@@ -298,12 +300,12 @@ ax.FontName = 'GillSans';
 
 %% make panel g
 figure(7); clf; hold on; box on
-x = linspace(0,4);
+x = linspace(0,4,1e2);
 dx = diff(x);
 dx = dx(1);
 
 %choose constnats
-sigma_m = 5;
+sigma_m = 10;
 sigma_g = 1;
 mu = 10;
 
@@ -313,7 +315,7 @@ for it = 1:length(tshow)
     pslr = get_pslr(x, slr, gammas_act, Dbar, sigma_m, sigma_g, mu);
     pslr = pslr / (sum(pslr)*dx);
 
-    plot(x, pslr, 'linewidth', 2, 'Color', colmapb(it,:));
+    plot(x, smooth(pslr, 3), 'linewidth', 2, 'Color', colmapb(it,:));
 end 
 
 
@@ -325,12 +327,14 @@ ax.FontSize = fs;
 ax.XTick = 0:3;
 ax.XLim = [0,3];
 ax.FontName = 'GillSans';
+ax.YLim = [0,3];
+ax.YTick = 0:3;
 
 %% make panel c 
 % 
 figure(3); clf;
 
-% ncols = length(gamma_idx);
+ ncols = length(gamma_idx);
 % nrows = 2*length(timeslices);
 % colgap = 0.02;
 % starty = 0.02;
