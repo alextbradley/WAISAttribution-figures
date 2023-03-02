@@ -28,7 +28,7 @@ end
 % run info
 %
 gammas      = 1:5; %1:5 correspond to 8:12 * 1e-3
-gammas_act  = 8:12; %what do these gamma value actually mean
+gammas_act  = 0.5:0.25:1.5; %what do these gamma value actually mean
 ensembles   = 1:2; %1: anthro trend, 2: no trend
 members     = 1:20;
 tshow       = [40,60,80,100]; %time values to show SLR at
@@ -113,7 +113,7 @@ end %end loop over ensembles
 %% get slr curve for each
 %choose constnats
 sigma_m = 10;
-sigma_g = 1;
+sigma_g = 0.1;
 mu = 10;
 x = linspace(-1,4,1e3);
 
@@ -156,6 +156,7 @@ for ie = 1:le
         ens_mean(ix) = median(vals);
         kde = fitdist(vals','kernel');
         ens_mean(ix) = mean(kde);
+        ens_mean(ix) = mean(vals);
         vals_all(ie,it,ix, :) = vals; 
     end
     mean_pdfs(ie,it, :) = ens_mean;
@@ -198,45 +199,3 @@ end
 
 fig = gcf; fig.Position(3:4) = [1060,600];
 
-%% make the inset showing the disributions
-v = squeeze(vals_all(:,4,400,:));
-w = 0.4; %max width of the pdf
-figure(2); clf; hold on; box on;
-for i = 1:2
-    %remove very long timescale pts
-    counts = v(i,:)';
-
-    %fit a kde to it
-    kde = fitdist(counts,'kernel');
-
-    %evaluate it
-    %x = linspace(-1,3);
-    y = pdf(kde,x);
-
-    %scale the pdf
-    y = y * w / max(y); 
-
-    % create fill array
-    cline = i; %centreline of distribution
-    xf = [cline + y, flip(cline - y)];
-    yf = [x,flip(x)];
-
-    %fill the data
-    fill(xf, yf, colmap(i,:), 'linewidth', 1, 'EdgeColor', 0.2*[1,1,1], 'FaceAlpha', 0.8)
-
-    % add individual entries
-    plot((cline+0.1)*ones(size(counts)), counts, 'ko', 'markersize',5)
-
-    %add the median
-    plot(cline, mean(kde), 'ko', 'markersize', 10, 'markerfacecolor', 'k');
-    mean(kde)
-end
-
-ylim([-0.3, 1]);
-xticks([]);
-ax = gca;
-ax.FontName = 'GillSans';
-ax.FontSize = 13;
-ax.YTick = 0:3;
-fig = gcf;
-fig.Position(3:4) = 0.6*[308,290];
