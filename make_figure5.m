@@ -9,6 +9,10 @@
 addpath('plottools')
 gendata = 1; %set to 1 to pass thru the gendata loop
 fs = 13; %plot fontsize
+colmap = lines(2); %colormap to differentiate between anthro and non
+colmap(1,:) = [ 0,    0.45    0.84];
+colmap(2,:) = [ 0.80    0.24    0.1];
+%colmap = [0, 63, 153; 153,0,63]/255;
 
 %
 % load in wavi and mitgcm data
@@ -138,6 +142,7 @@ end
 
 %% work out the means of distributions
 mean_pdfs = nan(le,lt,length(x));
+vals_all = nan(le,lt,length(x), lm);
 for it = 1:lt
 for ie = 1:le
     ens_mean = nan(size(x));
@@ -147,9 +152,11 @@ for ie = 1:le
             vals(im) = pslr_data(ie,im,it).pslr(ix);
         end
 
+
         ens_mean(ix) = median(vals);
         kde = fitdist(vals','kernel');
         ens_mean(ix) = mean(kde);
+        vals_all(ie,it,ix, :) = vals; 
     end
     mean_pdfs(ie,it, :) = ens_mean;
 end
@@ -157,10 +164,7 @@ end
 end
 
 %% make (a)--(d)
-colmap = lines(2); %colormap to differentiate between anthro and non
-colmap(1,:) = [ 0,    0.45    0.84];
-colmap(2,:) = [ 0.80    0.24    0.1];
-%colmap = [0, 63, 153; 153,0,63]/255;
+
 av = 0.12; %alpha value
 dx = diff(x); dx = dx(1);
 clf; hold on; box on;
@@ -193,3 +197,46 @@ for it = 1:4 %new figure for each timeslice
 end
 
 fig = gcf; fig.Position(3:4) = [1060,600];
+
+%% make the inset showing the disributions
+v = squeeze(vals_all(:,4,400,:));
+w = 0.4; %max width of the pdf
+figure(2); clf; hold on; box on;
+for i = 1:2
+    %remove very long timescale pts
+    counts = v(i,:)';
+
+    %fit a kde to it
+    kde = fitdist(counts,'kernel');
+
+    %evaluate it
+    %x = linspace(-1,3);
+    y = pdf(kde,x);
+
+    %scale the pdf
+    y = y * w / max(y); 
+
+    % create fill array
+    cline = i; %centreline of distribution
+    xf = [cline + y, flip(cline - y)];
+    yf = [x,flip(x)];
+
+    %fill the data
+    fill(xf, yf, colmap(i,:), 'linewidth', 1, 'EdgeColor', 0.2*[1,1,1], 'FaceAlpha', 0.8)
+
+    % add individual entries
+    plot((cline+0.1)*ones(size(counts)), counts, 'ko', 'markersize',5)
+
+    %add the median
+    plot(cline, mean(kde), 'ko', 'markersize', 10, 'markerfacecolor', 'k');
+    mean(kde)
+end
+
+ylim([-0.3, 1]);
+xticks([]);
+ax = gca;
+ax.FontName = 'GillSans';
+ax.FontSize = 13;
+ax.YTick = 0:3;
+fig = gcf;
+fig.Position(3:4) = 0.6*[308,290];

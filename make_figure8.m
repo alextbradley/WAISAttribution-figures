@@ -18,7 +18,7 @@ sigma_gs = [0.5,1, 2.5, 5];
 sigma_ms = [5,10,15,20];
 mu = 10;
 x = linspace(-1,4,1e3);
-fig7_data = struct; %initialize a structure to store the pslr and ensemble means as a function of sigma_g and sigma_m
+fig8_data = struct; %initialize a structure to store the pslr and ensemble means as a function of sigma_g and sigma_m
 
 %
 % load in wavi and mitgcm data
@@ -168,9 +168,47 @@ for isg = 1:length(sigma_gs)
 
         end
         %store this data
-        fig7_data(isg,ism).mean_pdfs = mean_pdfs;
-        fig7_data(isg,ism).pslr = pslr_data;
+        fig8_data(isg,ism).mean_pdfs = mean_pdfs;
+        fig8_data(isg,ism).pslr = pslr_data;
     end %end loop over sigma_m
 end %end loop over sigma_g
 
+%% Make the plot
+figure(1); clf; 
+count = 1;
+for isg = 1:length(sigma_gs)
+    for ism = 1:length(sigma_ms)
+        ax(isg,ism) = subplot(length(sigma_gs), length(sigma_ms), count);
+        mean_pdfs = fig8_data(isg, ism).mean_pdfs;
+        t = 10:100;
+        anthro_enhance = squeeze(mean_pdfs(1,11:end,:) - mean_pdfs(2,11:end,:));
+        p = imagesc(x, t, smooth2a(anthro_enhance,10,10));
+        clim([-.3,.3]);
+        set(gca, 'YDir', 'normal');
+        colormap(cmocean('balance'));
+     %  title(sprintf('s_g = %.2f, s_m = %.2f', sigma_gs(isg), sigma_ms(ism)))
+        
+        if isg == length(sigma_gs)
+            ax(isg,ism).XTick = 0:3;
+            ax(isg,ism).XLabel.String = 'sea level rise (mm)';
+        else
+            ax(isg,ism).XTick = [];
+        end
+        
+        if ism == 1
+            ax(isg,ism).YTick = 20:20:100;
+            ax(isg,ism).YLabel.String = 'time (years)';
 
+        else
+            ax(isg,ism).YTick = [];
+        end
+
+        ax(isg,ism).XLim = [-0.3, 3];
+        ax(isg,ism).FontSize = 13;
+        ax(isg,ism).FontName = 'GillSans';
+
+        count = count + 1;
+    end
+end
+fig = gcf;
+fig.Position(3:4) = [1040,730];

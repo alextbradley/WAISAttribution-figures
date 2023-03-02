@@ -145,6 +145,33 @@ end
 %% load in the figure 6 data
 fig6data = load('figure6-out.mat');
 
+%% Plot the enhancement over calibrated for anthro
+clf; 
+dp_anth = squeeze(mean_pdfs(1,11:end,:) - fig6data.mean_pdfs(1,11:end,:));
+t = tshow(11:end); 
+
+p = imagesc(x, t, smooth2a(dp_anth,10,10));
+set(gca, 'YDir', 'normal');
+colormap(cmocean('delta'))
+clim([-.3,.301]);
+
+c = colorbar;
+
+c.Label.String = 'uncalibrated - calibrated';
+c.Label.FontSize = fs+2;
+ax = gca;
+ax.XLim = [-0.3, 3];
+ax.YLim = [10,100];
+ax.XTick = 0:3;
+ax.FontSize = fs;
+ax.FontName = 'GillSans';
+ax.YLabel.String = 'time (years)';
+ax.XLabel.String = 'sea level rise (mm)';
+ax.XLabel.FontSize = fs+2;
+ax.YLabel.FontSize = fs+2;
+
+fig = gcf; fig.Position(3:4) = [560,420];
+
 
 %% make the first panel
 figure(1); clf;

@@ -27,6 +27,9 @@ positions = [0.08, 0.15, 0.4, 0.8;
 load('data/forcing_anomalies.mat');
 figure(1); clf;
 colmap = [0, 33, 153; 153,0,63]/255;
+colmap = lines(2); %colormap to differentiate between anthro and non
+colmap(1,:) = [ 0,    0.45    0.84];
+colmap(2,:) = [ 0.80    0.24    0.1];
 
 ax(1) = subplot('Position', positions(1,:)); hold on; box on
 pc_mean = zeros(2001,2);
@@ -60,8 +63,9 @@ legend({'anthropogenic trend', 'no trend'}, 'FontSize', 16, 'Location', 'SouthEa
 %
 % Run info
 %
-gammas    = [10; 10];
-ensembles = [3; 2]; %anthro (with trend) first, then natural (no trend)
+gammas    = [11; 11];
+gidx      = 4;          %index in the values: (4 corresponds to 11e-4)
+ensembles = [1; 2]; %anthro (with trend) first, then natural (no trend)
 members   = 1:20;
 members   = repmat(members, [2,1]);
 sz        = size(members);
@@ -90,7 +94,7 @@ if gendata
     for i = 1:sz(1) %forcing type
         for j = 1:sz(2) %member number
 
-        	hh = s(i,j).h; %ice thickness
+        	hh = s(gidx,i,j).h; %ice thickness
             idx = hh > float_thick;
             dh = hh - float_thick;
             dh(~idx) = 0;
@@ -122,7 +126,7 @@ for i = 1:sz(1)
     	p = plot(tt,smooth(SLR, 4),'linewidth', 1.25);
 
 
-    	p.Color = [colmap(i,:),0.5];
+    	p.Color = [colmap(i,:),0.6];
     end
 end
 
@@ -132,7 +136,7 @@ xlabel('time (yrs)');
 ylabel('sea level rise (mm)');
 ax(2) = gca;
 ax(2).FontSize = ax(1).FontSize;
-ax(2).YLim = [-1,5];
+ax(2).YLim = [-1,4];
 grid on
 
 fig = gcf;
