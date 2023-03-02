@@ -38,6 +38,7 @@ yy = yy/(sum(yy)*dg);
 yy = reshape(yy, [length(yy),1]); %make column vector
 gamma = reshape(gamma, [length(gamma),1]);
 f = fit(gamma,yy,'Gauss1');
+f = fit(gamma,yy,'SmoothingSpline','SmoothingParam', 1);
 
 % for each x, compute gamma_x (the values of gamma which return slr of x)
 for ix = 1:length(x)
@@ -50,7 +51,6 @@ for ix = 1:length(x)
         %D_gammax = interp1(gamma,D,gamma_x(ig)); %use linear interpolation to find the value of D(gamma_x);
         %P_mit_given_gammax = 1/sqrt(2*pi*sigma_m^2) * exp (-D_gammax .^2 /2/sigma_m^2);
         P_mit_given_gammax = f(gamma_x(ig));
-
 
         % for each gamma_x, compute P(gamma_x | mu)  
         P_gammax_given_mu =  1/sqrt(2*pi*sigma_g^2)*exp(-(gamma_x(ig) - mu).^2 /2/sigma_g^2);

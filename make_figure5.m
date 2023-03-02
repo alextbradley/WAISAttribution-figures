@@ -1,12 +1,11 @@
 % Make figure 5 of the manuscript showing:
-% (a) SLR as a function of time for single ensemble member for each different value of alpha.
-% (b) SLR as a function of alpha at times t1, t2, ...
-% (c) Table of contour plots of melt rate at timeslices for different alpha values. Likelihood values and mean likelihood labelled.
-% (d) Likehood as a function of gamma_T as a heatmap
-% (e) P(mitgcm|mu, gamma) (for different values of sigma_m?)
-% (f) P(gamma|mu) (for different values of sigma_a)
+% (1) SLR as a function of time for single ensemble member for each different value of alpha.
+% (2) SLR as a function of alpha at times t1, t2, ...
+% (3) Likehood as a function of gamma_T as a heatmap
+% (4) P(mitgcm|mu, M) 
+% (5) P(M|mu)
+% (6) l(M) (normalizaed product of 4 and 5)
 % (g) P(SLR = x) as a function of x
-% (nb this script produces (c) last)
 %
 % 24/02/23, ATB (aleey@bas.ac.uk), MIT license
 % 
@@ -16,7 +15,9 @@
 %
 addpath('plottools')
 gendata = 1; %set to 1 to pass thru the gendata loop
-fs = 13; %plot fontsize
+fs = 15; %plot fontsize
+figsize = [500,300]; %set plot size
+
 
 %
 % Constants
@@ -30,12 +31,13 @@ dy   = 1000; %grid resolution
 % Run info
 %
 gammas        = 1:5; %1:5 correspond to 8:12 * 1e-3
-gammas_act    = 8:12; %what do these gamma value actually mean
-ensembles     = 1; %1: anthro trend, 2: no trend
-members       = 5; %5 is good exampel
+Ms_act        = 0.5:0.25:1.5; %what do these gamma value actually mean in terms of M
+ensemble      = 1; %1: anthro trend, 2: no trend
+member        = 5; %
 sz            = [5,1]; %size of ensemble
 ss = load('data/WAVI-ensemble-data.mat');
 s = ss.ss;
+
 
 %
 % Initialize storage
@@ -52,45 +54,45 @@ if gendata
     for i = 1:sz(1) %alpha value
         for j = 1:sz(2) %member number
             gamma_idx = gammas(i);
-            member_idx = members(j);
+            member_idx = member(j);
 
             % get VAF
-            hh = s(gamma_idx,ensembles,member_idx).h; %ice thickness
+            hh = s(gamma_idx,ensemble,member_idx).h; %ice thickness
             idx = hh > float_thick;
             dh = hh - float_thick;
             dh(~idx) = 0;
             vv = sum(sum(dh,2),1)*dx*dy;
             vaf{i,j} = squeeze(vv);
-            tt = s(gamma_idx,ensembles,member_idx).t;
+            tt = s(gamma_idx,ensemble,member_idx).t;
             t{i,j} = tt;
 
         end
     end
 end %end gendata flag
 
-%% make panels a and b
-% Plot data
+Mcts = linspace(min(Ms_act), max(Ms_act), 2e2); %cts form of M
+
+
+%% Make plot 1: SLR as a function of time
 tshow = [20,40,60,80, 100]; %times to show in b
 colmapb = cmocean('haline',length(tshow)+1); %colourmap in b
 colmap = flipud(cmocean('matter',sz(1) + 1)); %colourmap in a
 positions = [   0.07 , 0.17, 0.4, 0.5; 
                 0.55, 0.17, 0.4, 0.78];
 
-%
-% Make (a)
-%
-fig1 = figure(1); clf; fig = gcf; fig.Position(3:4) = [1000,250];
-ax(1) = subplot('Position', positions(1,:));
-hold on; box on
 
+fig(1) = figure(1); clf;
+fig(1).Position(3:4) = figsize;
+hold on; box on
 
 % add tshow lines first
 for it = 1:length(tshow)
-    plot(tshow(it)*[1,1], [-5,5], '--', 'linewidth', 1.2, 'color', colmapb(it,:))
+    plot(tshow(it)*[1,1], [-5,5], '--', 'linewidth', 1.5, 'color', colmapb(it,:))
 end
+
+% add slr curves
 for i = 1:sz(1)
     for j = 1:sz(2)
-
 
         tt = cell2mat(t(i,j));
         vv = cell2mat(vaf(i,j));
@@ -100,26 +102,27 @@ for i = 1:sz(1)
 
     end
 end
-ax(1).XLim = [0,100];
-ax(1).XLabel.String = 'time (years)';
-ax(1).FontSize = 12;
-ax(1).YLabel.String = 'SLR (mm)';
-ax(1).YLim = [-1,4];
+ax1 = gca;
+ax1.XLim = [0,100];
+ax1.XLabel.String = 'time (years)';
+ax1.FontSize = fs;
+ax1.YLabel.String = '\Delta SLR (mm)';
+ax1.YLim = [-1,4];
+ax1.FontName = 'GillSans';
+
 c = colorbar;
 c.Colormap = (colmap(1:end-1,:));
 c.Ticks = 0.1:0.2:0.9;
-c.TickLabels = {'8', '9','10', '11','12'};
-c.Label.String = '$\gamma_T~\times 10^{3}$';
+c.TickLabels = {'0.5', '0.75','1', '1.25','1.5'};
+c.Label.String = '$M$';
 c.Label.Interpreter = 'latex';
-c.FontSize = 14;
-c.Label.FontSize = 16;
+c.FontSize = fs;
+c.Label.FontSize = fs;
 
 
-%
-% make (b)
-%
-
-ax(2) = subplot('Position',positions(2,:)); hold on; box on
+%% Make plot 2: SLR as a function of M
+fig(2) = figure(2); clf; hold on; box on;
+fig(2).Position(3:4) = figsize;
 %colmapb = parula(length(tshow)+1);
 
 for it = 1:length(tshow)
@@ -132,8 +135,8 @@ for it = 1:length(tshow)
 
     end %end loop over gamma values
     SLR_times{it} = SLR_at_this_time;
-    plot(gammas_act, (SLR_at_this_time),'color', colmapb(it,:), 'linewidth', 2)
 
+    plot(Ms_act, (SLR_at_this_time),'color', colmapb(it,:), 'linewidth', 2)
 
 %     % test the get_gamma_x script
 %     x = 0.2; %text value
@@ -143,47 +146,40 @@ for it = 1:length(tshow)
 %     drawnow ; pause
 
 end %end loop over time pts
+ax2 = gca;
+ax2.XLabel.String = '$M$';
+ax2.XLabel.Interpreter = 'latex';
+ax2.YLabel.String = '\Delta SLR (mm)';
+ax2.YLim = [-.5,4];
+ax2.YTick = 0:4;
+ax2.XTick = Ms_act;
+ax2.FontSize = fs; 
+ax2.FontName ='GillSans';
+ax2.YTick = -1:4;
 
-ax(2).XLabel.String = '$\gamma_T~\times 10^{3}$';
-ax(2).XLabel.Interpreter = 'latex';
-ax(2).YLabel.String = 'SLR (mm)';
-ax(2).YLim = [-.5,4];
-ax(2).YTick = 0:4;
-ax(2).XTick = 8:12;
 
-%
-% tidy stuff
-%
-for i =1:2
-    ax(i).FontSize = 14;
-    ax(i).FontName ='GillSans';
-end
-ax(1).Position(4) = 0.5; %make smaller to accomodate forcing plot
-ax(1).YTick = -1:2:3;
+% %
+% % create plot of forcing
+% %
+% fa = load('data/forcing_anomalies.mat');
+% pc = fa.ss(ensembles,members).pc;
+% tt  = fa.ss(ensembles,members).t;
+% axs = axes(); hold on; box on
+% plot([0,100], -500*[1,1], 'k--', 'linewidth', 1.2)
+% plot(tt(1:20:end), pc(1:20:end), 'linewidth', 1.4, 'color', [0, 33, 153]/255);
+% 
+% axs.Position = [ax(1).Position(1),ax(1).Position(2) + ax(1).Position(4) + 0.01, ax(1).Position(3), ax(2).Position(4) - ax(1).Position(4)];
+% axs.XLim = [0,100];
+% axs.XTick = 0:20:100;
+% axs.XTickLabel = {};
+% axs.FontSize = 14;
+% axs.FontName ='GillSans';
+% axs.YLim = [-800, -200];
+% axs.YTick = [-800,-500,-200];
+% axs.YLabel.String = '$P(t;\mathcal{F})$'; 
+% axs.YLabel.Interpreter = 'latex';
 
-%
-% create plot of forcing
-%
-fa = load('data/forcing_anomalies.mat');
-pc = fa.ss(ensembles,members).pc;
-tt  = fa.ss(ensembles,members).t;
-axs = axes(); hold on; box on
-plot([0,100], -500*[1,1], 'k--', 'linewidth', 1.2)
-plot(tt(1:20:end), pc(1:20:end), 'linewidth', 1.4, 'color', [0, 33, 153]/255);
-
-axs.Position = [ax(1).Position(1),ax(1).Position(2) + ax(1).Position(4) + 0.01, ax(1).Position(3), ax(2).Position(4) - ax(1).Position(4)];
-axs.XLim = [0,100];
-axs.XTick = 0:20:100;
-axs.XTickLabel = {};
-axs.FontSize = 14;
-axs.FontName ='GillSans';
-axs.YLim = [-800, -200];
-axs.YTick = [-800,-500,-200];
-axs.YLabel.String = '$P(t;\mathcal{F})$'; 
-axs.YLabel.Interpreter = 'latex';
-
-%% generate data for the rest of the plots
-gendata_c = 1; 
+%% Generate data for the likelihood 
 
 nx = 300;
 ny = 50;
@@ -191,10 +187,7 @@ timeslices = [0,25,50,75,100];
 gamma_idx = 1:5; %1,2,3,4,5 correspond to 8,9,10,11,12 *1e-3
 lt = length(timeslices);
 lg = length(gamma_idx);
-ensemble = ensembles;
-ensemble =1;
 
-member = members; %same as above?
 if gendata
     ss_mit = load('data/MITgcm-ensemble-data.mat');
     s_mit =  ss_mit.ss;
@@ -226,185 +219,160 @@ if gendata
 end %end gendata flag
 
 
-%% make panel d
-figure(4); clf; 
+%% Make plot 3: Dbar values
+fig(3) = figure(3); clf; fig(3).Position(3:4) = figsize;
 Dt = D'; %take transpose so that times go down
-DD = [Dt; mean(Dt)];h = heatmap(DD); %take the 
+DD = [Dt; mean(Dt)];
+h = heatmap(DD); 
+%surf(DD); view([0,90])
 Dbar = mean(Dt); %taking means in time (first axis of D')
 
- h.CellLabelFormat = '%.0f';
-ax =gca;
-ax.YDisplayLabels = {'0', '25', '50', '75', '100', ''};
-ax.XDisplayLabels = {'8', '9', '10', '11', '12'};
-cl = ax.ColorLimits;
-ax.ColorLimits = [0, cl(2)];
+h.CellLabelFormat = '%.0f';
+ax3 =gca;
+ax3.YDisplayLabels = {'0', '25', '50', '75', '100', ''};
+ax3.XDisplayLabels = {'0.5', '0.75', '1', '1.25', '1.5'};
+cl = ax3.ColorLimits;
+ax3.ColorLimits = [0, 50];
 cmap =  flipud(cmocean('ice',100));
 cmap = cmap(1:end-20,:);
-ax.Colormap = cmap;
-ax.FontName = 'GillSans';
-ax.FontSize = fs;
-fig = gcf;
-fig.Position(3:4) = [500,300];
+ax3.Colormap = cmap;
+ax3.FontName = 'GillSans';
+ax3.FontSize = fs;
+ax3.XLabel = '$M$';
+ax3.YLabel = 'time (years)';
 
-%% make panel e
+%put the x axis at top (ignore warning)
+axp = struct(ax3);       %you will get a warning
+axp.Axes.XAxisLocation = 'top';
+axp.Axes.XLabel.Interpreter = 'latex';
+%% Make plot 4: exp(-Dbar^2 / 2sigma_m^2)
 % plot of likelihood contribution from Dbar
-figure(5); clf; hold on; box on;
+fig(4) = figure(4); clf; hold on; box on;
+fig(4).Position(3:4) = figsize;
 
-%create a spline fit to this 
-
-xx = linspace(min(gammas_act), max(gammas_act), 5e3);
-sigma_m = [5,10,15,20]; 
-
+sigma_m = [10]; %option to do more if you want
+dm = diff(Ms_act); dm = dm(1); %grid spacing in M
 cmap = flipud(cmocean('amp', length(sigma_m) + 2));
+cmap = zeros(10,3);
+
 for ism = 1:length(sigma_m)
     yy = 1/sqrt(2*pi*sigma_m(ism)^2) * exp (-Dbar .^2 /2/sigma_m(ism)^2);
+    yy = yy/(sum(yy)*dm); %normalize (mass lost outside range)
 
+   
+    %do in a continuous way
+    f = fit(Ms_act',yy','SmoothingSpline','SmoothingParam', 1);
+    density_calibrate = f(Mcts);% ff(ff > 1) = 1;
+    plot(Mcts, density_calibrate, 'linewidth', 2, 'Color',cmap(ism+1,:))
+        % add the discrete points
+    plot(Ms_act, yy,'ko', 'linewidth', 2, 'Color',cmap(ism+1,:),'markerfacecolor', 'w', 'markersize', 7)
 
-    yy = yy/sum(yy); %normalize (grid spacing is 1)
-
-    f = fit(gammas_act',yy','Gauss1');
-    ff = f(xx); ff(ff > 1) = 1;
-    plot(xx, ff, 'linewidth', 2, 'Color',cmap(ism+1,:))
     %plot(gammas_act, yy,'o', 'markeredgecolor', 'k', 'markerfaceColor',cmap(ism+1,:))
     
+
 end
+
 fig = gcf;
 fig.Position(3:4) = [500,300];
 
-ax = gca; 
-ax.FontSize = fs;
-ax.XTick = gammas_act;
-ax.YLim = [0,1];
-ax.FontName = 'GillSans';
-%ax.YLabel.String = 'density';
+ax4 = gca; 
+ax4.FontSize = fs;
+ax4.XTick = Ms_act;
+ax4.YLim = [0,2.5];
+ax4.YTick = 0:2;
+ax4.XLim = [0.5, 1.5];
+ax4.FontName = 'GillSans';
+ax4.YLabel.String = '$P(\dot{m}_{\mathrm{ocean}}|M)$';
+ax4.XLabel.String = '$M$';
+ax4.YLabel.Interpreter = 'latex';
+ax4.XLabel.Interpreter = 'latex';
 
-%% make panel f
-figure(6); clf; hold on; box on;
-mu = 10;
-sigma_g = [0.5,1, 2.5, 5];
-xx = linspace(min(gammas_act), max(gammas_act));
-cmap = flipud(cmocean('tempo', length(sigma_g)+2));
-dx = diff(xx); dx = dx(1);
-for ig = 1:length(sigma_g)
-    density = 1/sqrt(2*pi*sigma_g(ig)^2)*exp(-(xx - mu).^2 /2/sigma_g(ig)^2);
-    density = density/sum(density) *dx;
-    plot(xx, density, 'linewidth', 2, 'Color',cmap(ig+1,:));
+%%  Make plot 5: exp(-(M-mu)^2 / 2sigma_mu^2)
+fig(5) = figure(5); clf; hold on; box on;
+mu = 1;
+sigma_mu = [0.1]; %1, 2.5, 5];
+cmap = flipud(cmocean('tempo', length(sigma_mu)+2));
+cmap = zeros(10,3); %make black
+dx = diff(Mcts); dx = dx(1);
+for ig = 1:length(sigma_mu)
+    density_prior = 1/sqrt(2*pi*sigma_mu(ig)^2)*exp(-(Mcts - mu).^2 /2/sigma_mu(ig)^2);
+    density_prior = density_prior/(sum(density_prior) *dx);
+    % add discrete points
+
+    plot(Mcts, density_prior, 'linewidth', 2, 'Color',cmap(ig+1,:));
+
+    %add discrete pts
+    plot(Ms_act,  1/sqrt(2*pi*sigma_mu(ig)^2)*exp(-(Ms_act - mu).^2 /2/sigma_mu(ig)^2), 'ko', 'linewidth', 2,'markerfacecolor','w');
+    
 end
-fig = gcf;
-fig.Position(3:4) = [500,300];
 
-ax = gca; 
-ax.FontSize = fs;
-ax.XTick = gammas_act;
-ax.FontName = 'GillSans';
+ax5 = gca; 
+ax5.FontSize = fs;
+ax5.XTick = Ms_act;
+ax5.FontName = 'GillSans';
+ax5.YLim = [0,4.2];
+ax5.FontName = 'GillSans';
+ax5.YLabel.String = '$P(M|\mu)$';
+ax5.XLabel.String = '$M$';
+ax5.YLabel.Interpreter = 'latex';
+ax5.XLabel.Interpreter = 'latex';
+fig(5).Position(3:4) = figsize;
+%% Make plot 6: l(M)
+sigma_mu = 0.1; %single values now
+sigma_m = 10;  
 
-%% make panel g
-figure(7); clf; hold on; box on
-x = linspace(0,4,1e2);
-dx = diff(x);
-dx = dx(1);
 
-%choose constnats
-sigma_m = 10;
-sigma_g = 1;
-mu = 10;
+Ldisc = 1/sqrt(2*pi*sigma_mu^2)*exp(-(Ms_act - mu).^2 /2/sigma_mu^2) .*  ...
+   ( 1/sqrt(2*pi*sigma_m^2) * exp (-Dbar .^2 /2/sigma_m^2));
+Ldisc = Ldisc / (sum(Ldisc)*dm); %normalize
+
+%or do the cts version 
+L = (density_calibrate') .* density_prior;
+L = L/(sum(L)*dx); %normalize
+
+fig(6) = figure(6);clf; hold on; box on; fig(6).Position(3:4) = figsize;
+
+%add the prior first
+plot(Mcts, density_prior, 'k--', 'linewidth', 2)
+plot(Mcts, L, 'k', 'linewidth', 2);
+%plot(Ms_act, Ldisc, 'ko', 'linewidth', 2, 'MarkerFaceColor', 'w', 'MarkerSize', 8);
+
+ax6 = gca; 
+ax6.FontSize = fs;
+ax6.XTick = Ms_act;
+ax6.FontName = 'GillSans';
+
+ax6.FontName = 'GillSans';
+ax6.YLabel.String = '$P(M|\mu)$';
+ax6.XLabel.String = '$M$';
+ax6.YLabel.Interpreter = 'latex';
+ax6.XLabel.Interpreter = 'latex';
+
+%% Make panel 7: sea level rise predictions
+fig(7) = figure(7); clf; hold on; box on
+fig(7).Position(3:4) = figsize;
+slr = linspace(0,4,1e2); %target slr values
+ds = diff(slr);
+ds = ds(1);
 
 for it = 1:length(tshow)
+    pslr = get_pslr(slr, cell2mat(SLR_times(it)), Ms_act, Dbar, sigma_m, sigma_mu, mu);
+    pslr = pslr / (sum(pslr)*ds);
 
-    slr = cell2mat(SLR_times(it));
-    pslr = get_pslr(x, slr, gammas_act, Dbar, sigma_m, sigma_g, mu);
-    pslr = pslr / (sum(pslr)*dx);
-
-    plot(x, smooth(pslr, 3), 'linewidth', 2, 'Color', colmapb(it,:));
+    plot(slr, pslr, 'linewidth', 2, 'Color', colmapb(it,:));
 end 
 
 
-fig = gcf;
-fig.Position(3:4) = [500,300];
 
-ax = gca; 
-ax.FontSize = fs;
-ax.XTick = 0:3;
-ax.XLim = [0,3];
-ax.FontName = 'GillSans';
-ax.YLim = [0,3];
-ax.YTick = 0:3;
+ax7 = gca; 
+ax7.FontSize = fs;
+ax7.XTick = 0:3;
+ax7.XLim = [0,3.5];
+ax7.FontName = 'GillSans';
+ax7.YLim = [0,3];
+ax7.YTick = 0:3;
 
-%% make panel c 
-% 
-figure(3); clf;
+ax7.YLabel.String = '\Delta SLR (mm)';
+ax7.XLabel.String = '$P(\Delta SLR| \mathcal{F}_i)$';
+ax7.XLabel.Interpreter = 'latex';
 
- ncols = length(gamma_idx);
-% nrows = 2*length(timeslices);
-% colgap = 0.02;
-% starty = 0.02;
-% rowgap = 0.01;
-% height = 1/(nrows+2); %height of plot
-% width  = 1/(ncols+1); %width of plot
-% startx = (1 -width*ncols - (ncols-1)*colgap)/2;
-% positions = zeros(4, ncols, nrows);
-% for p = 1:nrows
-%     for q = 1:ncols
-%         positions(:,q,p) = [startx + (q-1)*colgap + (q-1)*width, starty + (p-1)*height + (p-1)*rowgap, width, height];
-%        
-%     end
-% end
-
-count = 1;
-for p = 1:length(timeslices)
-    %do the wavi melt rates
-    for q = 1:length(gammas)
-        
-        %ax2(q,p) = subplot('Position', positions(:,q,nrows - p+1));
-        ax2(q,2*p-1) = subplot(2*length(timeslices),length(gammas), count);
-        m = squeeze(melt_wavi(q,p,:,:));
-        m(m==0) = nan;
-        pl = imagesc(m');
-        set(pl, 'AlphaData', ~isnan(m'));
-        count = count + 1;
-        
-        %drawnow; pause
-    end
-
-    %then do the mitgcm melt rates
-
-    for q = 1:ncols
-        %ax2(q,p) = subplot('Position', positions(:,q,nrows - p+1));
-        ax2(q,2*p) = subplot(2*length(timeslices),length(gammas), count);
-        m = squeeze(melt_mit(q,p,:,:));
-         m(m==0) = nan;
-        pl = imagesc(m');
-        set(pl, 'AlphaData', ~isnan(m'));
-        count = count + 1;
-               
-       % drawnow;pause
-    end
-   
-end
-
-%
-% do the tidying for them all
-%
-sz = size(ax2);
-for i = 1:sz(1)
-    for j = 1:sz(2)
-        ax2(i,j).XTick = [];
-        ax2(i,j).YTick = [];
-        box(ax2(q,p), 'on');
-        ax2(i,j).CLim = [0,100];
-        ax2(i,j).XLim = [100,300];
-        ax2(i,j).Colormap = cmocean('thermal');
-    end
-end
-
-fig2 = gcf;
-fig2.Position(3:4) = [1000, 500];
-
-%
-% add a colorbar
-%
-c = colorbar;
-c.Position(4) = 0.4;
-c.FontSize = 12;
-c.Position(1) = 0.92;
-c.Label.String = 'melt rate (m/yr)';
