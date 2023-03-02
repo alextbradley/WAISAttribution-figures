@@ -12,7 +12,7 @@
 % 
 
 %
-% Preliminaries
+% Preliminaries 
 %
 addpath('plottools')
 gendata = 1; %set to 1 to pass thru the gendata loop
