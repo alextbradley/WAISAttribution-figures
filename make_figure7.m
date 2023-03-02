@@ -1,18 +1,16 @@
-% Make figure 7 of the ms, showing the difference between the calibrated
-% and un-calibrated data
+% Make figure 7, showing the anthropogenic enhancement through time and
+% percentage enhacencement
 %
-% Note that the script to make figure 6 (make_figure6.m) must be run prior
-% to running this script, as the output from the former is used herein.
-%
-% 27/02/23 ATB (aleey@bas.ac.uk), MIT licence
-%
+% 27/02/23, ATB (aleey@bas.ac.uk), MIT licence
+
+
+
 %
 % Preliminaries
 %
 addpath('plottools')
 gendata = 1; %set to 1 to pass thru the gendata loop
 fs = 13; %plot fontsize
-
 
 %
 % load in wavi and mitgcm data
@@ -62,7 +60,7 @@ float_thick = abs(rhow/rhoi *bed); %thickness at which floatation occurs
 % at each time, as well as calibration data
 %
 slr_data = struct;
-Dbar     = ones(le,lm,lg); %set the calibration co-efficient to unity 
+Dbar     = nan(le,lm,lg); %for storing the calibration coefficients
 
 for ie = 1:le
     for im = 1:lm
@@ -82,14 +80,35 @@ for ie = 1:le
 
                 slr_data(ie,im,ig,it).slr = slr(tidx);
             end %end loop over time show points
- 
+
+            %
+            % get the calibration values
+            %
+            D_here = nan(1,ltc);
+            for itc = 1:ltc
+                [~,tidx] = min(abs(ss_wavi(ig,ie,im).t - timeslices(itc)));
+
+                %get the mitgcm melt rates
+                m_mit = ss_mit(ig,ie,im,itc).m;
+             
+                %get the wavi melt rate
+                m_wavi = ss_wavi(ig,ie,im).m(:,:,tidx); %ice model melt rate
+                
+              
+                %get the calibration coefficient assoc w/ this timeslice
+                hh = ss_wavi(ig,ie,im).h(:,:,tidx); %ice thickness at this point
+                D_here(itc) = get_D(m_mit,m_wavi,hh); %mean over 'calibration points'
+                allD(ie,im,ig,itc) = D_here(itc);
+                
+            end %end loop over timeslice claibration points
+            Dbar(ie,im,ig) = mean((D_here)); %mean over the timeslices   
 
         end %end loop over gamma values
         
     end %end loop over members
 end %end loop over ensembles
 
-%% get slr curve for each ensemble and member
+%% get slr curve for each
 %choose constnats
 sigma_m = 10;
 sigma_g = 1;
@@ -142,44 +161,51 @@ it
 
 end
 
-%% load in the figure 6 data
-fig6data = load('figure6-out.mat');
+%% store all values
+vals = nan(lt,le,lm,length(x)); %for each x, store all associated values
+for it = 10:lt
+    for ie = 1:2
+        for ix = 1:length(x)
+            for im = 1:lm
+                vals(it,ie,im,ix) = pslr_data(ie,im,it).pslr(ix);
+            end
+        end
+    end
+    it
 
-%% Plot the enhancement over calibrated for anthro
-clf; 
-dp_anth = squeeze(mean_pdfs(1,11:end,:) - fig6data.mean_pdfs(1,11:end,:));
-t = tshow(11:end); 
+end
 
-p = imagesc(x, t, smooth2a(dp_anth,10,10));
-set(gca, 'YDir', 'normal');
-colormap(cmocean('delta'))
-clim([-.3,.301]);
+%% get the significance curves
+is_significant_pt1 = zeros(lt,length(x));
+is_significant_pt05 = zeros(lt,length(x));
+is_significant_pt01 = zeros(lt,length(x)); %store significance at different levels
+for it = 11:lt
+    for ix = 1:length(x)
+    
+        v1 = squeeze(vals(it,1,:,ix)); %all anthro members at this time and x
+        v2 = squeeze(vals(it,2,:,ix)); %all non anthro members
+        [~,h] = ranksum(v1, v2, 'Alpha', 0.1);
+        is_significant_pt1(it,ix) =  h;
+        [~,h] = ranksum(v1, v2, 'Alpha', 0.05);
+        is_significant_pt05(it,ix) =  h;
+        [~,h] = ranksum(v1, v2, 'Alpha', 0.01);
+        is_significant_pt01(it,ix) =  h;
+    end
+    it
+end
 
-c = colorbar;
-
-c.Label.String = 'uncalibrated - calibrated';
-c.Label.FontSize = fs+2;
-ax = gca;
-ax.XLim = [-0.3, 3];
-ax.YLim = [10,100];
-ax.XTick = 0:3;
-ax.FontSize = fs;
-ax.FontName = 'GillSans';
-ax.YLabel.String = 'time (years)';
-ax.XLabel.String = 'sea level rise (mm)';
-ax.XLabel.FontSize = fs+2;
-ax.YLabel.FontSize = fs+2;
-
-fig = gcf; fig.Position(3:4) = [560,420];
-
+%% save the output for use in figure 7
+save('figure6-out.mat', "mean_pdfs");
 
 %% make the first panel
 figure(1); clf;
 dp = squeeze(mean_pdfs(1,11:end,:) - mean_pdfs(2,11:end,:));
+dp = smooth2a(dp,10,10); % adapt the smoothing amount to your needs...
+
 t = tshow(11:end); 
 dp(abs(dp)<1e-4) = 0;
 p = imagesc(x, t, dp);
-clim([-.3,.301]);
+clim([-.3,.3]);
 set(gca, 'YDir', 'normal');
 colormap(cmocean('balance'));
 c = colorbar;
@@ -197,6 +223,17 @@ ax.XLabel.FontSize = fs+2;
 ax.YLabel.FontSize = fs+2;
 
 fig = gcf; fig.Position(3:4) = [560,420];
+
+% 
+% add contours of significance
+%
+hold on
+sigcmap = cmocean('algae',4);
+sigcmap = (parula(5));
+contour(x,t,smooth2a(is_significant_pt1(11:end,:),10,10), [0.5,0.5],'color',sigcmap(2,:), 'linewidth', 1.2)
+contour(x,t,smooth2a(is_significant_pt05(11:end,:),10,10), [0.5,0.5],'color',sigcmap(3,:), 'linewidth', 1.2)
+contour(x,t,smooth2a(is_significant_pt01(11:end,:),10,10), [0.5,0.5],'color',sigcmap(4,:), 'linewidth', 1.2)
+
 
 %% make the second panel
 % pdf_anth = squeeze(mean_pdfs(1,11:end,:));
@@ -264,7 +301,7 @@ cmap = cmap(11:end-10,:);
 figure(2); clf;
 
 %ratio(ratio > 0) = nan;
-p = imagesc(x, t,(ratio)*100);
+p = imagesc(x, t,smooth2a(ratio,2,2)*100);
 set(p, 'AlphaData', ~isnan(ratio))
 %clim([-2,2]);
 set(gca, 'YDir', 'normal');
