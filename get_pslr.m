@@ -37,7 +37,7 @@ dg = dg(1);
 yy = yy/(sum(yy)*dg);
 yy = reshape(yy, [length(yy),1]); %make column vector
 gamma = reshape(gamma, [length(gamma),1]);
-f = fit(gamma,yy,'Gauss1');
+%f = fit(gamma,yy,'Gauss1');
 f = fit(gamma,yy,'SmoothingSpline','SmoothingParam', 1);
 
 % for each x, compute gamma_x (the values of gamma which return slr of x)

@@ -1,16 +1,18 @@
-% Make figure 7, showing the anthropogenic enhancement through time and
-% percentage enhacencement
-%
-% 27/02/23, ATB (aleey@bas.ac.uk), MIT licence
-
-
+% Make figure 6 of the manuscript showing:
+% (a--d) pdfs of individual ensemble members at times (a) 40, (b) 60, (c)
+% 80, (d) 100 years
+% (e) combined pdfs
 
 %
 % Preliminaries
 %
 addpath('plottools')
 gendata = 1; %set to 1 to pass thru the gendata loop
-fs = 13; %plot fontsize
+fs = 14; %plot fontsize
+colmap = lines(2); %colormap to differentiate between anthro and non
+colmap(1,:) = [ 0,    0.45    0.84];
+colmap(2,:) = [ 0.80    0.24    0.1];
+%colmap = [0, 63, 153; 153,0,63]/255;
 
 %
 % load in wavi and mitgcm data
@@ -26,11 +28,17 @@ end
 % run info
 %
 gammas      = 1:5; %1:5 correspond to 8:12 * 1e-3
-gammas_act  = 8:12; %what do these gamma value actually mean
+Ms_act      = 0.5:0.25:1.5; %what do these gamma value actually mean
 ensembles   = 1:2; %1: anthro trend, 2: no trend
 members     = 1:20;
-tshow       = 0:100; %time values to show SLR at
+tshow       = [40,60,80,100]; %time values to show SLR at
 timeslices  = [0,25,50,75,100]; %calibration times
+
+%choose constants
+sigma_m = 10;
+sigma_g = 0.1;
+mu = 1;
+x = linspace(-1,4,1e3); %target slr values (needs to be reasonably big for fine structure to be resolved)
 
 %length of arrays for conveniences
 lg = length(gammas);
@@ -109,12 +117,6 @@ for ie = 1:le
 end %end loop over ensembles
 
 %% get slr curve for each
-%choose constnats
-sigma_m = 10;
-sigma_g = 1;
-mu = 10;
-x = linspace(-1,4,1e3);
-
 pslr_data = struct;
 count = 1;
 
@@ -124,24 +126,21 @@ for ie = 1:le
         %subplot(le,10, count); hold on; box on
         for it = 1:lt
             
-            slrs = [slr_data(ie,im,:,it).slr];
-            D = squeeze(Dbar(ie,im,:));
-            pslr = get_pslr(x, slrs, gammas_act, D', sigma_m, sigma_g, mu);
-            pslr_data(ie,im,it).pslr = pslr;
-             
-           %  plot(x,pslr ); 
-           %  ylim([0,3])
+             slrs = [slr_data(ie,im,:,it).slr];
+             D = squeeze(Dbar(ie,im,:));
+             pslr = get_pslr(x, slrs, Ms_act, D', sigma_m, sigma_g, mu);
+             pslr_data(ie,im,it).pslr = pslr;            
             
         end
-        count = count + 1 %, drawnow; pause 
+        count = count + 1;% drawnow; pause 
     end
 
 end
 
 %% work out the means of distributions
 mean_pdfs = nan(le,lt,length(x));
-dx = diff(x); dx = dx(1);
-for it = 10:lt
+vals_all = nan(le,lt,length(x), lm);
+for it = 1:lt
 for ie = 1:le
     ens_mean = nan(size(x));
     for ix = 1:length(x)
@@ -150,177 +149,61 @@ for ie = 1:le
             vals(im) = pslr_data(ie,im,it).pslr(ix);
         end
 
-        ens_mean(ix) = median(vals);
-        kde = fitdist(vals','kernel');
-        ens_mean(ix) = mean(kde);
+
+%         ens_mean(ix) = median(vals);
+%         kde = fitdist(vals','kernel');
+%         ens_mean(ix) = mean(kde);
+        ens_mean(ix) = mean(vals);
+        vals_all(ie,it,ix, :) = vals; 
     end
-    ens_mean = ens_mean / sum(ens_mean) /dx;
     mean_pdfs(ie,it, :) = ens_mean;
 end
-it
 
 end
 
-%% store all values
-vals = nan(lt,le,lm,length(x)); %for each x, store all associated values
-for it = 10:lt
+%% make (a)--(d)
+
+av = 0.12; %alpha value
+dx = diff(x); dx = dx(1);
+clf; hold on; box on;
+
+positions = [0.06, 0.58, 0.42, 0.4
+             0.55, 0.58 , 0.42, 0.4;
+             0.06, 0.08, 0.42, 0.4;
+             0.55, 0.08, 0.42, 0.4];
+for it = 1:4 %new figure for each timeslice
+    subplot('Position',positions(it,:)); hold on; box on;
     for ie = 1:2
-        for ix = 1:length(x)
-            for im = 1:lm
-                vals(it,ie,im,ix) = pslr_data(ie,im,it).pslr(ix);
-            end
+        for im = 1:lm
+            p = plot(x,pslr_data(ie,im,it).pslr, 'linewidth', 1.2, 'color', colmap(ie,:), 'HandleVisibility','off');
+            p.Color = [colmap(ie,:), av];
+
         end
-    end
-    it
 
+         %add the ensemble mean
+         mpdf = squeeze(mean_pdfs(ie,it,:));
+         mpdf = mpdf / sum(mpdf) /dx;
+         plot(x, smooth(mpdf, 8),  'linewidth', 2, 'color', colmap(ie,:));
+
+
+    end
+    if it == 1
+    legend({'anthropogenic trend', 'no trend'}, 'FontSize', fs+1, 'Location', 'SouthEast')
+    end
+
+    %tidy the plot
+    ax(it) = gca;
+    ax(it).YLim = [0,4];
+    ax(it).XLim = [-0.3, 3];
+    ax(it).YTick = 0:4;
+    ax(it).XTick = 0:3;
+    ax(it).FontName = 'GillSans';
+    ax(it).FontSize = fs+1;
+    ax(it).XLabel.String = '\Delta SLR (mm)';
+    ax(it).YLabel.String = '$P(SLR|\mathcal{F})$';
+    ax(it).YLabel.Interpreter = 'latex';
+    ax(it).YLabel.Position(1) = -0.46;
 end
 
-%% get the significance curves
-is_significant_pt1 = zeros(lt,length(x));
-is_significant_pt05 = zeros(lt,length(x));
-is_significant_pt01 = zeros(lt,length(x)); %store significance at different levels
-for it = 11:lt
-    for ix = 1:length(x)
-    
-        v1 = squeeze(vals(it,1,:,ix)); %all anthro members at this time and x
-        v2 = squeeze(vals(it,2,:,ix)); %all non anthro members
-        [~,h] = ranksum(v1, v2, 'Alpha', 0.1);
-        is_significant_pt1(it,ix) =  h;
-        [~,h] = ranksum(v1, v2, 'Alpha', 0.05);
-        is_significant_pt05(it,ix) =  h;
-        [~,h] = ranksum(v1, v2, 'Alpha', 0.01);
-        is_significant_pt01(it,ix) =  h;
-    end
-    it
-end
-
-%% save the output for use in figure 7
-save('figure6-out.mat', "mean_pdfs");
-
-%% make the first panel
-figure(1); clf;
-dp = squeeze(mean_pdfs(1,11:end,:) - mean_pdfs(2,11:end,:));
-dp = smooth2a(dp,10,10); % adapt the smoothing amount to your needs...
-
-t = tshow(11:end); 
-dp(abs(dp)<1e-4) = 0;
-p = imagesc(x, t, dp);
-clim([-.3,.3]);
-set(gca, 'YDir', 'normal');
-colormap(cmocean('balance'));
-c = colorbar;
-c.Label.String = 'anthropogenic enhancement';
-c.Label.FontSize = fs+2;
-ax = gca;
-ax.XLim = [-0.3, 3];
-ax.YLim = [10,100];
-ax.XTick = 0:3;
-ax.FontSize = fs;
-ax.FontName = 'GillSans';
-ax.YLabel.String = 'time (years)';
-ax.XLabel.String = 'sea level rise (mm)';
-ax.XLabel.FontSize = fs+2;
-ax.YLabel.FontSize = fs+2;
-
-fig = gcf; fig.Position(3:4) = [560,420];
-
-% 
-% add contours of significance
-%
-hold on
-sigcmap = cmocean('algae',4);
-sigcmap = (parula(5));
-contour(x,t,smooth2a(is_significant_pt1(11:end,:),10,10), [0.5,0.5],'color',sigcmap(2,:), 'linewidth', 1.2)
-contour(x,t,smooth2a(is_significant_pt05(11:end,:),10,10), [0.5,0.5],'color',sigcmap(3,:), 'linewidth', 1.2)
-contour(x,t,smooth2a(is_significant_pt01(11:end,:),10,10), [0.5,0.5],'color',sigcmap(4,:), 'linewidth', 1.2)
-
-
-%% make the second panel
-% pdf_anth = squeeze(mean_pdfs(1,11:end,:));
-% pdf_nat = squeeze(mean_pdfs(2,11:end,:));
-% ratio = (pdf_anth - pdf_nat) ./ pdf_nat;
-% 
-% ratio = pdf_anth ./ pdf_nat;
-% cmap = cmocean('curl', 100);
-% cmap = cmap(11:end-10,:);
-% 
-% % anthro enhancement first
-% figure(2); clf;
-% 
-% ratio_pos = ratio;
-% ratio_pos(ratio<0)= nan;
-% 
-% p = imagesc(x, t,log10(ratio_pos));
-% set(p, 'AlphaData', ~isnan(ratio_pos))
-% clim([-2,2]);
-% set(gca, 'YDir', 'normal');
-% ax(1) = gca;
-% colormap(ax(1), cmap(41:end,:));
-% 
-% % natural enhancement
-% ax(2) = axes();
-% ratio_neg = ratio;
-% ratio_neg(ratio > 0)= nan;
-% p = imagesc(x, t,log10(abs(ratio_neg)));
-% %clim(ax(2),[-2,2]);
-% set(p, 'AlphaData', ~isnan(ratio_neg))
-% colormap(ax(2), (cmap(1:40,:)));
-% 
-% 
-% ax(2).Visible = 'off';
-% ax(2).XLim = ax(1).XLim;
-% ax(2).YLim = ax(1).YLim;
-% 
-% 
-% % make the colorbar;
-% axc = axes();
-% c = colorbar(axc);
-% axc.Colormap = cmap;
-% axc.Visible = 'off';
-% 
-% % tidy up
-% for i = 1:2
-%     ax(i).XLim = [-0.3, 3];
-%     ax(i).YLim = [10,100];
-% end
-
-
-%% make the second panel
-pdf_anth = squeeze(mean_pdfs(1,11:end,:));
-pdf_nat = squeeze(mean_pdfs(2,11:end,:));
-ratio = (pdf_anth - pdf_nat) ./ pdf_nat;
-%ratio(pdf_nat < 1e-5) = nan;
-%ratio = pdf_anth./pdf_nat;
-
-idx = (pdf_nat ~= 0 & pdf_anth == 0);
-ratio(idx) = -100;
-%ratio(isinf(ratio))
-cmap = cmocean('curl', 100);
-cmap = cmap(11:end-10,:);
-
-figure(2); clf;
-
-%ratio(ratio > 0) = nan;
-p = imagesc(x, t,smooth2a(ratio,2,2)*100);
-set(p, 'AlphaData', ~isnan(ratio))
-%clim([-2,2]);
-set(gca, 'YDir', 'normal');
-ax(1) = gca;
-colormap(ax(1), cmap);
-c = colorbar;
-clim([-200,200])
-c.Label.String = 'percentage anthropogenic enhancement';
-c.Label.FontSize = fs+2;
-
-ax = gca;
-ax.XLim = [-0.3, 3];
-ax.YLim = [10,100];
-ax.XTick = 0:3;
-ax.FontSize = fs;
-ax.FontName = 'GillSans';
-ax.YLabel.String = 'time (years)';
-ax.XLabel.String = 'sea level rise (mm)';
-ax.XLabel.FontSize = fs+2;
-ax.YLabel.FontSize = fs+2;
-
-fig = gcf; fig.Position(3:4) = [560,420];
+fig = gcf; fig.Position(3:4) = [1060,560];
+shg

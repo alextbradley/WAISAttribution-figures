@@ -1,16 +1,12 @@
-% Make figure 4 of the manuscript showing:
-% Table of contour plots of melt rate at timeslices for different M values.
-
+% Make figure 3 of the attribution manuscript
 %
-% 24/02/23, ATB (aleey@bas.ac.uk), MIT license
-% 
-
+% Stochastic retreat: grounded volume as a function of time for gamma_T = 10e-3 with natural and anthro and corresponding forcing profiles
 %
-% Preliminaries 
+%
+% Preliminaries
 %
 addpath('plottools')
-gendata = 1; %set to 1 to pass thru the gendata loop
-fs = 13; %plot fontsize
+gendata = 1; %gendata loop flag
 
 %
 % Constants
@@ -19,147 +15,137 @@ rhoi = 918;  %ice density
 rhow = 1028; %water density
 dx   = 1000;
 dy   = 1000; %grid resolution
-nx = 300;
-ny = 50;     %grid size
+
+%
+% setup plot
+%
+positions = [0.08, 0.15, 0.4, 0.8;
+    0.55, 0.15, 0.4, 0.8];
+%
+% Part 1: plot of stochastic forcing
+%
+load('data/forcing_anomalies.mat');
+figure(1); clf;
+colmap = [0, 33, 153; 153,0,63]/255;
+colmap = lines(2); %colormap to differentiate between anthro and non
+colmap(1,:) = [ 0,    0.45    0.84];
+colmap(2,:) = [ 0.80    0.24    0.1];
+
+ax(1) = subplot('Position', positions(1,:)); hold on; box on
+pc_mean = zeros(2001,2);
+sz = [2,20]; %size of the ensemble
+for ie = 1:sz(1)
+    for im = 1:sz(2)
+        tt = ss(ie,im).t;
+        pp = ss(ie, im).pc;
+        p = plot(tt, pp, 'linewidth', 1, 'HandleVisibility','off');
+        p.Color = [colmap(ie,:),0.15];
+        pc_mean(:,ie) = pc_mean(:,ie) + pp;
+
+    end
+    pc_mean = pc_mean/sz(2);
+    plot(tt,pc_mean(:,ie), 'linewidth', 1.75, 'color', colmap(ie,:));
+end
+plot(tt,-500 + tt, '--','linewidth', 1.25, 'color', colmap(1,:), 'HandleVisibility','off'); %add the anthro trend
+plot(tt,-500*ones(size(tt)), '--','linewidth', 1.25, 'color', colmap(2,:), 'HandleVisibility','off'); %add the natural trend
+
+xlim([0, 100]);
+xlabel('time (yrs)');
+ylabel('pycnocline depth (m)');
+%ylim([-750, -250]);
+ax(1) = gca; ax(1).FontSize = 11;
+ax(1).YTick = -900:200:-100;
+legend({'anthropogenic trend', 'no trend'}, 'FontSize', 16, 'Location', 'SouthEast')
+
+%%
+% Part 2: sea level rise
 
 %
 % Run info
 %
-gammas        = 1:5; %1:5 correspond to M = 0.5:1.5
-ensemble      = 1; %1: anthro trend, 2: no trend
-member        = 5; % e.g.. Note must be same as fig 5
-timeslices    = [0,25,50,75,100];
-lt =  length(timeslices);
-lg = length(gammas);
-%% Generate data
+gammas    = [11; 11];
+gidx      = 4;          %index in the values: (4 corresponds to 11e-4)
+ensembles = [1; 2]; %anthro (with trend) first, then natural (no trend)
+members   = 1:20;
+members   = repmat(members, [2,1]);
+sz        = size(members);
 
+%
+% Initialize storage
+%
 if gendata
     ss = load('data/WAVI-ensemble-data.mat');
     s = ss.ss;
-    ss_mit = load('data/MITgcm-ensemble-data.mat');
-    s_mit =  ss_mit.ss;
-    melt_wavi = nan(lg,lt,nx,ny);
-    melt_mit  = nan(lg,lt,nx,ny);
-    D = nan(lg,lt);
+    vaf  = cell(sz);
+    t    = cell(sz); %times corresponding to vaf (different to those for forcing)
+    dx   = 1000;
+    dy   = 1000;
 
-    for it = 1:lt %timeslice value
-        for ig = 1:lg %gamma value 
-            % get the wavi melt rates
-            tt = s(ig,ensemble,member).t;
-            s(ig,ensemble,member).fid;
-            [~,idx] = min(abs(tt - timeslices(it))); %index of time entry matching
+    %
+    % compute the ice bed
+    %
+    fpath = strcat('data/ATTR_00000/outfile.nc');
+    bed   = ncread(fpath, 'b', [1, 1, 1], [Inf, Inf, 1]); %bed topo
+    float_thick = abs(rhow/rhoi *bed);
+
+    %
+    % Get the results for VAF and associate time and forcing and associated time
+    %
+    for i = 1:sz(1) %forcing type
+        for j = 1:sz(2) %member number
+
+        	hh = s(gidx,i,j).h; %ice thickness
+            idx = hh > float_thick;
+            dh = hh - float_thick;
+            dh(~idx) = 0;
+            vv = sum(sum(dh,2),1)*dx*dy;
             
-            mw = s(ig,ensemble,member).m(:,:,idx); %ice model melt rate
-            melt_wavi(ig,it,:,:) = mw;
+%           gg = s(i,j).grfrac; %ice grounded fraction
+%         
+%          	vv = hh.*gg;
+%         	vv = sum(sum(vv,2),1)*dx*dy;
+%         	vv = squeeze(vv);
+        	vaf{i,j} = vv;
+            tt = s(i,j).t;
+            t{i,j} = tt;
 
-            %get the mitgcm melt rates
-            mm = s_mit(ig,ensemble,member,it).m;
-            melt_mit(ig,it,:,:) = mm;
-
-            %get the calibration coefficient
-            hh = s(ig,ensemble,member).h(:,:,idx); %ice thickness at this point
-            D(ig,it) = get_D(mm,mw,hh);
-
-        end
-    end
+        end %end loop over member number
+    end %end loop over ensembles
 end %end gendata flag
 
-
-%% Make the plot
-% 
-figure(3); clf;
-
-count = 1;
-for p = 1:length(timeslices)
-
-    %do the wavi melt rates
-    for q = 1:length(gammas)
-        ax2(q,2*p-1) = subplot(2*length(timeslices),length(gammas), count);
-        m = squeeze(melt_wavi(q,p,:,:));
-        m(m==0) = nan;
-        pl = imagesc(m');
-        set(pl, 'AlphaData', ~isnan(m'));
-        count = count + 1;
-        
-        %drawnow; pause
-    end
-
-    %then do the mitgcm melt rates
-
-    for q = 1:lg
-        %ax2(q,p) = subplot('Position', positions(:,q,nrows - p+1));
-        ax2(q,2*p) = subplot(2*length(timeslices),length(gammas), count);
-        m = squeeze(melt_mit(q,p,:,:));
-         m(m==0) = nan;
-        pl = imagesc(m');
-        set(pl, 'AlphaData', ~isnan(m'));
-        count = count + 1;
-               
-       % drawnow;pause
-    end
-   
-end
-
 %
-% do the tidying for them all
+% Make plot
 %
-sz = size(ax2);
+ax(2) = subplot('Position', positions(2,:)); hold on; box on
 for i = 1:sz(1)
     for j = 1:sz(2)
-        ax2(i,j).XTick = [];
-        ax2(i,j).YTick = [];
-        box(ax2(q,p), 'on');
-        ax2(i,j).CLim = [0,100];
-        ax2(i,j).XLim = [100,300];
-        ax2(i,j).Colormap = cmocean('thermal');
+    	tt = cell2mat(t(i,j));
+    	vv = cell2mat(vaf(i,j));
+    	volume_change = vv(1) - vv;
+    	SLR = volume_change / 395 / 1e9; %SLR in mm
+    	p = plot(tt,smooth(SLR, 4),'linewidth', 1.25);
+
+
+    	p.Color = [colmap(i,:),0.6];
     end
 end
 
+
+xlim([0, 100]);
+xlabel('time (yrs)');
+ylabel('sea level rise (mm)');
+ax(2) = gca;
+ax(2).FontSize = ax(1).FontSize;
+ax(2).YLim = [-1,4];
+grid on
+
 fig = gcf;
-fig.Position(3:4) = [1000, 500];
+fig.Position(3:4) = [950, 360];
 
-%
-% add a colorbar
-%
-c = colorbar;
-c.Location = 'southoutside';
-c.Position(3) = 0.3;
-c.FontSize = 14;
-c.Label.String = 'melt rate (m/yr)';
-c.FontName = 'GillSans';
-c.Position(2) = 0.08;
-c.Position(1) = 0.5;
-c.Position(4) = 0.015;
-
-%% Make a plot of the forcing (vertical)
-fig2 = figure(2); clf; hold on; box on
-
-% load in the data
-fa = load('data/forcing_anomalies.mat');
-pc = fa.ss(ensemble,member).pc;
-tt  = fa.ss(ensemble,member).t;
-
-%plot initial pos and trend
-plot(-500*[1,1],[0,100] ,'k--', 'linewidth', 1.2)
-plot(pc(1:20:end), tt(1:20:end), 'linewidth', 1.4, 'color', [0, 33, 153]/255);
-
-%tidy 
-axs = gca;
-axs.YLim = [0,100];
-axs.YTick = 0:20:100;
-axs.YTickLabel = {};
-axs.FontSize = 14;
-axs.FontName ='GillSans';
-axs.XLim = [-800, -200];
-axs.XTick = [-800,-500,-200];
-axs.XLabel.String = '$\mathcal{F}_i(t)$'; 
-axs.XLabel.Interpreter = 'latex';
-
-% add timeslices
-for it = 1:lt
-   % plot([-800,200], timeslices(it)*[1,1], 'k--', 'linewidth', 1.2, 'Color',0.5*[1,1,1])
+%%
+for i = 1:2
+    ax(i).FontSize = 16;
+    ax(i).FontName = 'GillSans';
 end
-axs.YTick = timeslices;
-
-fig2.Position(4) = fig.Position(4); %make same height at main panel
-fig2.Position(3) = 200;
+fig = gcf;
+fig.Position(3:4) = [1080, 380];
