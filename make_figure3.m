@@ -76,23 +76,35 @@ positions = [0.1, 0.54, 0.35, 0.35;
 %
 % (a) Bathymetry
 %  
+
+% extend the bed
+bedext = zeros(360,50);
+bedext(1:300,:) = bed;
+bedext(301:end,:) = repmat(bed(end,:), [60,1]);
+xext = 500:1e3:(360*1e3 - 500);
+
 ax(1) = subplot('Position', positions(1,:));box on;
 cmap = cmocean('ice', 100);
 cmap = cmap(1:90,:);
 hold on
 %contourf(x/1e3,y/1e3,bed', 50, 'linestyle', 'none');
-imagesc(x/1e3,y/1e3,bed'); set(gca, 'YDir', 'normal')
+imagesc(xext/1e3,y/1e3,bedext'); set(gca, 'YDir', 'normal')
 xl = xlabel('x (km)');
 yl = ylabel('y (km)');
 colormap(ax(1), cmap);
 ax(1).YLim = [-24.75,24.75];
-ax(1).XLim = [0,360]; %adjust x and y lims so that box is visible
+ax(1).XLim = [0,359]; %adjust x and y lims so that box is visible
 c = colorbar;
 c.Label.String = 'bed depth (m)';
 
 % add cross section line
 plot(ax(1).XLim, [0,0], 'w--', 'linewidth', 1.5)
-ax(1).XTick = 0:50:300;
+
+%add ice front lice
+plot([300,300], ax(1).YLim, 'w', 'linewidth', 1.5)
+
+% tidy
+ax(1).XTick = 0:50:350;
 ax(1).CLim = [-1200,-500];
 c.Position(1) = 0.455;
 c.Position(3) = 0.01;
@@ -107,10 +119,10 @@ c.Ticks = -1200:200:-600;
 ax(2) = subplot('Position', positions(3,:));box on;
 hold on; box on;
 %ax(2).YLim = [-24.5,25];
-ax(2).XLim = [0,360]; %adjust x and y lims so that box is visible
+ax(2).XLim = [0,359]; %adjust x and y lims so that box is visible
 ax(2).YLim = [-1200,500];
-fill([x/1e3; flip(x)/1e3], [-1200*ones(size(x)); flip(bed(:,floor(ny/2)))], [220,220,220]/256, 'linestyle', 'none','FaceAlpha', 0.75);
-ax(2).XTick = 0:50:300;
+fill([xext'/1e3; flip(xext')/1e3], [-1500*ones(size(xext')); flip(bedext(:,floor(ny/2)))], [220,220,220]/256, 'edgecolor','k' ,'FaceAlpha', 0.75);
+ax(2).XTick = 0:50:350;
 
 
 % add the ice bases
