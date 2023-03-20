@@ -1,8 +1,6 @@
-% Make figure 8 of the ms, showing the difference between the calibrated
+% Make figure 9 of the ms, showing the difference between the calibrated
 % and un-calibrated data
 %
-% Note that the script to make figure 6 (make_figure6.m) must be run prior
-% to running this script, as the output from the former is used herein.
 %
 % 27/02/23 ATB (aleey@bas.ac.uk), MIT licence
 %

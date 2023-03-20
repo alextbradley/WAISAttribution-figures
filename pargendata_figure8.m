@@ -196,4 +196,4 @@ end
 
 %% save the output for use in figure 7
 t = tshow;
-save('figure8-out.mat', "mean_pdfs", "vals", "t", "is_significant_pt1", "is_significant_pt05","is_significant_pt01", "x");
+save('figure8-data.mat', "mean_pdfs", "vals", "t", "is_significant_pt1", "is_significant_pt05","is_significant_pt01", "x");
