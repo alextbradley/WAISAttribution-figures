@@ -20,12 +20,13 @@
 %
 poolobj = gcp('nocreate');
 if ~isempty(poolobj);  delete(poolobj); end
-num_cpu=2;
+num_cpu=24;
 poolobj = parpool('local',num_cpu);
 
 %
 % load in wavi and mitgcm data
 %
+gendata = 1;
 if gendata
     ss_wavi = load('data/WAVI-ensemble-data.mat');
     ss_wavi = ss_wavi.ss;

@@ -23,7 +23,7 @@
 %
 poolobj = gcp('nocreate');
 if ~isempty(poolobj);  delete(poolobj); end
-num_cpu=2;
+num_cpu=24;
 poolobj = parpool('local',num_cpu);
 
 %
