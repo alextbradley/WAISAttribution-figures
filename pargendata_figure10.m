@@ -102,6 +102,7 @@ end %end loop over ensembles
 
 %% get slr curve for each realization of forcing
 varsig_data = struct;
+count = 1;
 for isg = 1:length(sigma_gs)
     for ism = 1:length(sigma_ms)
         sigma_g = sigma_gs(isg);
@@ -130,6 +131,7 @@ for isg = 1:length(sigma_gs)
         end
         mean_pdfs = squeeze(mean(vals,3));
         varsig_data(isg, ism).mean_pdfs = mean_pdfs;
+	count = count + 1
     end
 end
 
