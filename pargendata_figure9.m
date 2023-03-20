@@ -125,6 +125,20 @@ for ie = 1:le
 
 end
 
+%% store all values of slr
+vals = nan(lt,le,lm,length(x)); %for each x, store all associated values
+for it = 1:lt
+    for ie = 1:2
+        for ix = 1:length(x)
+            for im = 1:lm
+                vals(it,ie,im,ix) = pslr_data(ie,im,it).pslr(ix);
+            end
+        end
+    end
+    it
+
+end
+mean_pdfs = squeeze(mean(vals,3));
 
 
 %% save the output for use in figure 9
