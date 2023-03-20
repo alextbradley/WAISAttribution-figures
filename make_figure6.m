@@ -1,11 +1,11 @@
-% Make figure 5 of the manuscript showing:
+% Make figure 6 of the manuscript showing:
 % (1) SLR as a function of time for single ensemble member for each different value of alpha.
 % (2) SLR as a function of alpha at times t1, t2, ...
-% (3) Likehood as a function of gamma_T as a heatmap
+% (3) Likehood as a function of M as a heatmap
 % (4) P(mitgcm|mu, M) 
 % (5) P(M|mu)
 % (6) l(M) (normalizaed product of 4 and 5)
-% (g) P(SLR = x) as a function of x
+% (7) P(SLR = x) as a function of x
 %
 % 24/02/23, ATB (aleey@bas.ac.uk), MIT license
 % 
@@ -357,22 +357,29 @@ ds = ds(1);
 
 for it = 1:length(tshow)
     pslr = get_pslr(slr, cell2mat(SLR_times(it)), Ms_act, Dbar, sigma_m, sigma_mu, mu);
-    pslr = pslr / (sum(pslr)*ds);
+    pslr = pslr / (sum(pslr)*ds); %should be normalized anyway...
 
     plot(slr, pslr, 'linewidth', 2, 'Color', colmapb(it,:));
+
+    %repeat with uncalibrated
+    pslr = get_pslr(slr, cell2mat(SLR_times(it)), Ms_act, ones(size(Dbar)), sigma_m, sigma_mu, mu);
+    pslr = pslr / (sum(pslr)*ds);
+
+    plot(slr, pslr,'--', 'linewidth', 2, 'Color', colmapb(it,:));
+
 end 
 
 
 
 ax7 = gca; 
-ax7.FontSize = fs;
+ax7.FontSize = [660,420];
 ax7.XTick = 0:3;
 ax7.XLim = [0,3.5];
 ax7.FontName = 'GillSans';
 ax7.YLim = [0,3];
 ax7.YTick = 0:3;
 
-ax7.YLabel.String = '\Delta SLR (mm)';
-ax7.XLabel.String = '$P(\Delta SLR| \mathcal{F}_i)$';
-ax7.XLabel.Interpreter = 'latex';
+ax7.XLabel.String = '\Delta SLR (mm)';
+ax7.YLabel.String = '$P(\Delta SLR| \mathcal{F}_i)$';
+ax7.YLabel.Interpreter = 'latex';
 

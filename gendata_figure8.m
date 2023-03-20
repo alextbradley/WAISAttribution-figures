@@ -1,18 +1,27 @@
-% Make figure 7 of the manuscript showing:
-% (a--d) pdfs of individual ensemble members at times (a) 40, (b) 60, (c)
-% 80, (d) 100 years
-% (e) combined pdfs
+% Generate data to produce figure 8. Produces variables:
+% (1) mean_pdfs, size (nt x ne x nx), the mean probability distribution 
+% (2) vals, size (nt x ne x nm x nx), value of probabilities.
+% (3) is_significant_ptX (nt x ne x nx) boolean matrices, showing whether
+% the set of probabilities are significantly different from one another at
+% significance level X.
+% nt: number of time output points
+% ne: number of ensemlbes (here 2)
+% nm: number of ensemble members (here 20)
+% nx: number of tagret slr points 
+% 
+% Files save these, alongside time output points, in a file figure8-out.mat
+%
+% NB this script takes ~O(10s) of minutes to run.
+%
+% ATB (aleey@bas.ac.uk), 17/3/23. MIT licence.
+
 
 %
 % Preliminaries
 %
 addpath('plottools')
 gendata = 1; %set to 1 to pass thru the gendata loop
-fs = 14; %plot fontsize
-colmap = lines(2); %colormap to differentiate between anthro and non
-colmap(2,:) = [ 0,    0.45    0.84];  %blue for no trend
-colmap(1,:) = [ 0.80    0.24    0.1]; %red for anthro
-%colmap = [0, 63, 153; 153,0,63]/255;
+fs = 13; %plot fontsize
 
 %
 % load in wavi and mitgcm data
@@ -27,21 +36,15 @@ end
 %
 % run info
 %
-gammas      = 1:5; %1:5 correspond to 8:12 * 1e-3
+Ms          = 1:5; %indices of M
 Ms_act      = 0.5:0.25:1.5; %what do these gamma value actually mean
 ensembles   = 1:2; %1: anthro trend, 2: no trend
-members     = 1:20;
-tshow       = [40,60,80,100]; %time values to show SLR at
+members     = 1:40;
+tshow       = 10:100; %time values to show SLR at
 timeslices  = [0,25,50,75,100]; %calibration times
 
-%choose constants
-sigma_m = 10;
-sigma_g = 0.1;
-mu = 1;
-x = linspace(-1,4,1e3); %target slr values (needs to be reasonably big for fine structure to be resolved)
-
 %length of arrays for conveniences
-lg = length(gammas);
+lg = length(Ms);
 le = length(ensembles);
 lm = length(members);
 lt = length(tshow);
@@ -54,6 +57,10 @@ rhoi = 918;  %ice density
 rhow = 1028; %water density
 dx   = 1000;
 dy   = 1000; %grid resolution
+sigma_m = 10;
+sigma_g = 0.1;
+mu = 1;
+x = linspace(-1,4,1e4); %output points for SLR (i.e. target values). Need very fine resolution to capture situations with little sea level rise as a fucntion of M 
 
 %
 % get the bathymetry
@@ -68,8 +75,8 @@ float_thick = abs(rhow/rhoi *bed); %thickness at which floatation occurs
 % at each time, as well as calibration data
 %
 slr_data = struct;
-Dbar     = nan(le,lm,lg); %for storing the calibration coefficients
-
+Dbar     = nan(le,lm,lg); %for storing the mean calibration coefficients
+allD     = nan(le,lm,lg,ltc); %for storing all calibration coefficients
 for ie = 1:le
     for im = 1:lm
         for ig = 1:lg
@@ -112,11 +119,11 @@ for ie = 1:le
             Dbar(ie,im,ig) = mean((D_here)); %mean over the timeslices   
 
         end %end loop over gamma values
-        
     end %end loop over members
 end %end loop over ensembles
 
-%% get slr curve for each
+%% get slr curve for each realization of forcing
+
 pslr_data = struct;
 count = 1;
 
@@ -126,84 +133,57 @@ for ie = 1:le
         %subplot(le,10, count); hold on; box on
         for it = 1:lt
             
-             slrs = [slr_data(ie,im,:,it).slr];
-             D = squeeze(Dbar(ie,im,:));
-             pslr = get_pslr(x, slrs, Ms_act, D', sigma_m, sigma_g, mu);
-             pslr_data(ie,im,it).pslr = pslr;            
+            slrs = [slr_data(ie,im,:,it).slr];
+            D = squeeze(Dbar(ie,im,:));
+            pslr = get_pslr(x, slrs, Ms_act, D', sigma_m, sigma_g, mu);
+            pslr_data(ie,im,it).pslr = pslr;
+             
+           %  plot(x,pslr ); 
+           %  ylim([0,3])
             
         end
-        count = count + 1;% drawnow; pause 
+        count = count + 1 %, drawnow; pause 
     end
 
 end
 
-%% work out the means of distributions
-mean_pdfs = nan(le,lt,length(x));
-vals_all = nan(le,lt,length(x), lm);
+
+
+
+%% store all values of slr
+vals = nan(lt,le,lm,length(x)); %for each x, store all associated values
 for it = 1:lt
-for ie = 1:le
-    ens_mean = nan(size(x));
+    for ie = 1:2
+        for ix = 1:length(x)
+            for im = 1:lm
+                vals(it,ie,im,ix) = pslr_data(ie,im,it).pslr(ix);
+            end
+        end
+    end
+    it
+
+end
+mean_pdfs = squeeze(mean(vals,3));
+
+%% get the significance curves
+is_significant_pt1 = zeros(lt,length(x));
+is_significant_pt05 = zeros(lt,length(x));
+is_significant_pt01 = zeros(lt,length(x)); %store significance at different levels
+for it = 1:lt
     for ix = 1:length(x)
-        vals = nan(1,lm); %store all values at this particular x
-        for im = 1:lm
-            vals(im) = pslr_data(ie,im,it).pslr(ix);
-        end
-
-
-%         ens_mean(ix) = median(vals);
-%         kde = fitdist(vals','kernel');
-%         ens_mean(ix) = mean(kde);
-        ens_mean(ix) = mean(vals);
-        vals_all(ie,it,ix, :) = vals; 
+    
+        v1 = squeeze(vals(it,1,:,ix)); %all anthro members at this time and x
+        v2 = squeeze(vals(it,2,:,ix)); %all non anthro members
+        [~,h] = ranksum(v1, v2, 'Alpha', 0.1);
+        is_significant_pt1(it,ix) =  h;
+        [~,h] = ranksum(v1, v2, 'Alpha', 0.05);
+        is_significant_pt05(it,ix) =  h;
+        [~,h] = ranksum(v1, v2, 'Alpha', 0.01);
+        is_significant_pt01(it,ix) =  h;
     end
-    mean_pdfs(ie,it, :) = ens_mean;
+    it
 end
 
-end
-
-%% make (a)--(d)
-
-av = 0.12; %alpha value
-dx = diff(x); dx = dx(1);
-clf; hold on; box on;
-
-positions = [0.06, 0.58, 0.42, 0.4
-             0.55, 0.58 , 0.42, 0.4;
-             0.06, 0.08, 0.42, 0.4;
-             0.55, 0.08, 0.42, 0.4];
-for it = 1:4 %new figure for each timeslice
-    subplot('Position',positions(it,:)); hold on; box on;
-    for ie = [2,1] %no trend first
-        for im = 1:lm
-            p = plot(x,pslr_data(ie,im,it).pslr, 'linewidth', 1.2, 'color', colmap(ie,:), 'HandleVisibility','off');
-            p.Color = [colmap(ie,:), av];
-
-        end
-
-         %add the ensemble mean
-         mpdf = squeeze(mean_pdfs(ie,it,:));
-         mpdf = mpdf / sum(mpdf) /dx;
-         plot(x, smooth(mpdf, 8),  'linewidth', 2, 'color', colmap(ie,:));
-
-
-    end
-    if it == 1
-    legend({'no trend', 'anthropogenic trend'}, 'FontSize', fs+1, 'Location', 'SouthEast')
-    end
-
-    %tidy the plot
-    ax(it) = gca;
-    ax(it).YLim = [0,4];
-    ax(it).XLim = [-0.3, 3];
-    ax(it).YTick = 0:4;
-    ax(it).XTick = 0:3;
-    ax(it).FontName = 'GillSans';
-    ax(it).FontSize = fs+1;
-    ax(it).XLabel.String = '\Delta SLR (mm)';
-    ax(it).YLabel.String = '$P(SLR|\mathcal{F})$';
-    ax(it).YLabel.Interpreter = 'latex';
-    ax(it).YLabel.Position(1) = -0.46;
-end
-
-fig = gcf; fig.Position(3:4) = [1060,560];
-shg
+%% save the output for use in figure 7
+t = tshow;
+save('figure8-out.mat', "mean_pdfs", "vals", "t", "is_significant_pt1", "is_significant_pt05","is_significant_pt01", "x");

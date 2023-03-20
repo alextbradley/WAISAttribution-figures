@@ -44,7 +44,6 @@ f = fit(gamma,yy,'SmoothingSpline','SmoothingParam', 1);
 for ix = 1:length(x)
     gamma_x = get_gamma_x(x(ix), slr, gamma);
 
-
     for ig = 1:length(gamma_x)
 
         % for each gamma_x, compute D(gamma_x) and therefore P(mitgcm| gamma_x)

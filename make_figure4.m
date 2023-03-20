@@ -1,7 +1,7 @@
-% Make figure 3 of the attribution manuscript
-%
-% Stochastic retreat: grounded volume as a function of time for gamma_T = 10e-3 with natural and anthro and corresponding forcing profiles
-%
+% Make figure 4 of the attribution manuscript, showing (a) forcing
+% scenarios and (b) sea level rise contributions of these with M = 1.
+% 
+% ATB (aleey@bas.ac.uk),  13/03/2023. MIT licence.
 %
 % Preliminaries
 %
@@ -21,15 +21,15 @@ dy   = 1000; %grid resolution
 %
 positions = [0.08, 0.15, 0.4, 0.8;
     0.55, 0.15, 0.4, 0.8];
+figure(1); clf;
+colmap = lines(2); %colormap to differentiate between anthro and non
+colmap(1,:) = [ 0,    0.45    0.84];
+colmap(2,:) = [ 0.80    0.24    0.1];
+
 %
 % Part 1: plot of stochastic forcing
 %
 load('data/forcing_anomalies.mat');
-figure(1); clf;
-colmap = [0, 33, 153; 153,0,63]/255;
-colmap = lines(2); %colormap to differentiate between anthro and non
-colmap(1,:) = [ 0,    0.45    0.84];
-colmap(2,:) = [ 0.80    0.24    0.1];
 
 ax(1) = subplot('Position', positions(1,:)); hold on; box on
 pc_mean = zeros(2001,2);
@@ -63,8 +63,8 @@ legend({'anthropogenic trend', 'no trend'}, 'FontSize', 16, 'Location', 'SouthEa
 %
 % Run info
 %
-gammas    = [11; 11];
-gidx      = 4;          %index in the values: (4 corresponds to 11e-4)
+gammas    = [10; 10];   %gamma = 10 corresponds to M = 1
+gidx      = 3;          %index in the values: (3 corresponds to gamma = 10e-4 or M = 1)
 ensembles = [1; 2]; %anthro (with trend) first, then natural (no trend)
 members   = 1:20;
 members   = repmat(members, [2,1]);
@@ -78,8 +78,6 @@ if gendata
     s = ss.ss;
     vaf  = cell(sz);
     t    = cell(sz); %times corresponding to vaf (different to those for forcing)
-    dx   = 1000;
-    dy   = 1000;
 
     %
     % compute the ice bed
