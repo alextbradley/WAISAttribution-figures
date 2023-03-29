@@ -10,7 +10,6 @@
 load('figure8-data.mat');
 
 fig = figure(1); clf;
-
 fig.Position(3:4) = [1200,600];
 
 w = 0.35; 

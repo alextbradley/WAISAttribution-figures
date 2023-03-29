@@ -30,16 +30,19 @@ t            = fig8_calibrated.t;
 %
 % compute change
 %
-dp_calib = calib_pdf - uncalib_pdf;
-dp_calib = smooth2a(dp_calib, 2,3);
+dp_calib = uncalib_pdf - calib_pdf;
+dp_calib = smooth2a(dp_calib, 1,3);
+dp_calib(abs(dp_calib)<(1e-4)) = nan;
 
 % 
 % make plot
 %
+figure(1); clf;
 p = imagesc(xx, t, dp_calib);
+set(p, 'AlphaData', ~isnan(dp_calib));
 set(gca, 'YDir', 'normal');
 colormap(cmocean('delta'))
-clim([-.3,.301]);
+clim([-.3,.30]);
 
 c = colorbar;
 c.Label.String = 'uncalibrated - calibrated';
