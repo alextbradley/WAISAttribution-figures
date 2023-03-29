@@ -1,16 +1,13 @@
-% Generate data to produce figure 8. Produces variables:
-% (1) mean_pdfs, size (nt x ne x nx), the mean probability distribution 
-% (2) vals, size (nt x ne x nm x nx), value of probabilities.
-% (3) is_significant_ptX (nt x ne x nx) boolean matrices, showing whether
-% the set of probabilities are significantly different from one another at
-% significance level X.
+% Generate data to produce figure 9. Produces variables:
+% (1) mean_pdfs, size (nt x ne x nx), the mean probability distribution in
+% the uncalibrated case by setting the likelihoods to be unity and prior to be strong. 
+
 % nt: number of time output points
 % ne: number of ensemlbes (here 2)
 % nm: number of ensemble members (here 20)
 % nx: number of tagret slr points 
 %
-% NB: this script is as in gendata_figure8, but runs the loop in a parallel
-% way. 
+% NB: this script runs in a parallel fashion.
 % 
 % Files save these, alongside time output points, in a file figure8-out.mat
 %
@@ -27,15 +24,9 @@ num_cpu=24;
 poolobj = parpool('local',num_cpu);
 
 %
-% Preliminaries
-%
-addpath('plottools')
-gendata = 1; %set to 1 to pass thru the gendata loop
-fs = 13; %plot fontsize
-
-%
 % load in wavi and mitgcm data
 %
+gendata = 1;
 if gendata
     ss_wavi = load('data/WAVI-ensemble-data.mat');
     ss_wavi = ss_wavi.ss;
@@ -85,8 +76,7 @@ float_thick = abs(rhow/rhoi *bed); %thickness at which floatation occurs
 % at each time, as well as calibration data
 %
 slr_data = struct;
-Dbar     = nan(le,lm,lg); %for storing the mean calibration coefficients
-allD     = nan(le,lm,lg,ltc); %for storing all calibration coefficients
+Dbar     = ones(le,lm,lg); %for storing the mean calibration coefficients
 for ie = 1:le
     for im = 1:lm
         for ig = 1:lg
@@ -105,28 +95,6 @@ for ie = 1:le
 
                 slr_data(ie,im,ig,it).slr = slr(tidx);
             end %end loop over time show points
-
-            %
-            % get the calibration values
-            %
-            D_here = nan(1,ltc);
-            for itc = 1:ltc
-                [~,tidx] = min(abs(ss_wavi(ig,ie,im).t - timeslices(itc)));
-
-                %get the mitgcm melt rates
-                m_mit = ss_mit(ig,ie,im,itc).m;
-             
-                %get the wavi melt rate
-                m_wavi = ss_wavi(ig,ie,im).m(:,:,tidx); %ice model melt rate
-                
-              
-                %get the calibration coefficient assoc w/ this timeslice
-                hh = ss_wavi(ig,ie,im).h(:,:,tidx); %ice thickness at this point
-                D_here(itc) = get_D(m_mit,m_wavi,hh); %mean over 'calibration points'
-                allD(ie,im,ig,itc) = D_here(itc);
-                
-            end %end loop over timeslice claibration points
-            Dbar(ie,im,ig) = mean((D_here)); %mean over the timeslices   
 
         end %end loop over gamma values
     end %end loop over members
@@ -157,9 +125,6 @@ for ie = 1:le
 
 end
 
-
-
-
 %% store all values of slr
 vals = nan(lt,le,lm,length(x)); %for each x, store all associated values
 for it = 1:lt
@@ -175,25 +140,7 @@ for it = 1:lt
 end
 mean_pdfs = squeeze(mean(vals,3));
 
-%% get the significance curves
-is_significant_pt1 = zeros(lt,length(x));
-is_significant_pt05 = zeros(lt,length(x));
-is_significant_pt01 = zeros(lt,length(x)); %store significance at different levels
-for it = 1:lt
-    for ix = 1:length(x)
-    
-        v1 = squeeze(vals(it,1,:,ix)); %all anthro members at this time and x
-        v2 = squeeze(vals(it,2,:,ix)); %all non anthro members
-        [~,h] = ranksum(v1, v2, 'Alpha', 0.1);
-        is_significant_pt1(it,ix) =  h;
-        [~,h] = ranksum(v1, v2, 'Alpha', 0.05);
-        is_significant_pt05(it,ix) =  h;
-        [~,h] = ranksum(v1, v2, 'Alpha', 0.01);
-        is_significant_pt01(it,ix) =  h;
-    end
-    it
-end
 
-%% save the output for use in figure 7
+%% save the output for use in figure 9
 t = tshow;
-save('figure8-data.mat', "mean_pdfs", "vals", "t", "is_significant_pt1", "is_significant_pt05","is_significant_pt01", "x");
+save('shortfigure3-uncalibdata.mat', "mean_pdfs", "t", "x");
