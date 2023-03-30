@@ -50,26 +50,23 @@ for it = 1:length(t)
 
         %anthro
         vals = squeeze(anth_all_subsamp(it,:,ix));
-        ci = bootci(nboot,@mean,vals);
-        anth_ci_upper(it,ix) = ci(1);
-        anth_ci_lower(it,ix) = ci(2);
+        ci = bootci(nboot,@mean,vals, 'Alpha', 0.1);
+        anth_ci_lower(it,ix) = ci(1);
+        anth_ci_upper(it,ix) = ci(2);
 
         %counterfactual
         vals = squeeze(nat_all_subsamp(it,:,ix));
-        ci = bootci(nboot,@mean,vals);
-        nat_ci_upper(it,ix) = ci(1);
-        nat_ci_lower(it,ix) = ci(2);
+        ci = bootci(nboot,@mean,vals, 'Alpha',0.1);
+        nat_ci_lower(it,ix) = ci(1);
+        nat_ci_upper(it,ix) = ci(2);
         
-        if mod(ix,100) == 0
-            ix
-        end
+        %if mod(ix,100) == 0
+        %    ix
+        %end
 
     end
     toc
     it
 end
 
-
-
-figure(1); clf; 
-p = imagesc(xx, t, log10(ci_upper));
+save('shortfigure4-bootstrapdata.mat', 'anth_ci_lower', 'anth_ci_upper', 'nat_ci_lower', 'nat_ci_upper');
