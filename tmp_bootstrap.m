@@ -11,7 +11,7 @@ anth_ci_upper = nan(length(t), length(x));
 anth_ci_lower = nan(length(t), length(x));
 nat_ci_upper  = nan(length(t), length(x));
 nat_ci_lower  = nan(length(t), length(x));
-for it = 1:length(t)
+parfor it = 1:length(t)
     tic
     for ix = 1:length(xx)
 
