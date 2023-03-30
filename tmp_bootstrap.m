@@ -1,4 +1,10 @@
 
+poolobj = gcp('nocreate');
+if ~isempty(poolobj);  delete(poolobj); end
+num_cpu=24;
+poolobj = parpool('local',num_cpu);
+
+
 nboot = 1000;
 
 anth_ci_upper = nan(length(t), length(x));
