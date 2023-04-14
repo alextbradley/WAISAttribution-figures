@@ -2,9 +2,10 @@
 % (a) the bed elevation
 % (b) the ice geometry in initial condition
 % (c) forcing profiles
-% (d) forcing of a single member and different values of M
+% (d) forcing of a single member
 % (e) sea level rise as a function of time for this realization and different values of M
-% (f) sea level rise at t = 100 as a function of M and different ensembles
+% (f) forcing profiles of all members
+% (g) sea level rise at t = 100 as a function of M and different ensembles
 
 %
 % Alex Bradley, 10/11/22. MIT License.
@@ -70,13 +71,14 @@ for i = 1:sz(2)
 end 
 
 %% Initialize plots
-positions = [0.06, 0.79, 0.64, 0.2; %bathymetry
-             0.06, 0.55, 0.64, 0.21; %ice shelf geometry
-             0.71, 0.55, 0.1,  0.21;   %forcing temp
-             0.82, 0.55, 0.1,  0.21;   %forcing salinity
-             0.06, 0.32, 0.40,  0.16;  %forcing relization
-             0.06, 0.08, 0.40, 0.23; %slr for this different forcing
-             0.52, 0.08, 0.40, 0.40]; % final slr at different times and M and ensembles
+positions = [0.06, 0.82, 0.64, 0.17; %bathymetry
+             0.06, 0.61, 0.64, 0.19; %ice shelf geometry
+             0.71, 0.61, 0.1,  0.19; %forcing temp
+             0.82, 0.61, 0.1,  0.19; %forcing salinity
+             0.06, 0.36, 0.39, 0.18; %forcing relization
+             0.06, 0.07, 0.39, 0.23; %slr for this different forcing
+             0.53, 0.36, 0.39, 0.18; %all realizations of forcing
+             0.53, 0.07, 0.39, 0.23]; % final slr at different times and M and ensembles
 
 figure(1); clf;
     
@@ -88,7 +90,16 @@ blue   = [0, 33, 153]/255;
 red    = [153, 0,33]/255;
 grey   = [220,220,220]/256;
 
-for i = 1:7
+%colourmap for anthro vs counterfactual
+colmapg = nan(2,3); 
+colmapg(1,:) = [255,152,51]/255;  %anthro
+colmapg(2,:) = [0,153, 153]/255; %counter
+% for poster
+colmapg(2,:) = [7,54,125]/255; %dark blue
+colmapg(1,:) = [248,200,44]/255; %yellow
+
+
+for i = 1:8
     ax(i) = subplot('Position', positions(i,:));
     hold(ax(i), 'on');
     box(ax(i), 'on')
@@ -252,7 +263,6 @@ pcsneg = pcs;
 pcsneg(pcs > -500) = -500;
 
 
-
 %fill positive
 xf =  [ts,flip(ts)];
 yf =  [-500*ones(size(pcspos)); flip(pcspos)];
@@ -265,19 +275,20 @@ fill(ax(5), xf, yf, [0, 33, 153]/255, 'LineStyle', 'none', 'FaceAlpha',0.7);
 %plot(ax(5), ts,  pcs, 'linewidth', 1.4, 'color', 'k');
 
 %plot counterfactual trend
-plot(ax(5), [0,100] ,-500*[1,1],'k--', 'linewidth', 2, 'Color',  'k')
+plot(ax(5), [0,100] ,-500*[1,1],'k', 'linewidth', 1, 'Color',  'k')
 
 %plot anthro trend
-plot(ax(5), [0,100] ,[-500, -400],'k', 'linewidth', 2)
+%plot(ax(5), [0,100] ,[-500, -400],'k', 'linewidth', 2)
 
 
 %tidy 
 ax(5).XLim = [0,100];
 ax(5).XTick = 0:20:100;
-ax(5).XTickLabel = {};
+%ax(5).XTickLabel = {};
 ax(5).YLim = [-800, -200];
 ax(5).YTick = [-700,-500,-300];
-ax(5).YLabel.String = '$P_c(t)$'; 
+ax(5).YLabel.String = '$P_c(t)$';
+ax(5).XLabel.String = 'time (years)'; 
 ax(5).YLabel.Interpreter = 'latex';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -333,10 +344,44 @@ ax(6).YLim = [-1,4];
 %make agree with e
 ax(6).XTick = ax(5).XTick;
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% Make panel g: all realizations of forcing %%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+load('data/forcing_anomalies.mat');
+
+ax(1) = subplot('Position', positions(1,:)); hold on; box on
+pc_mean = zeros(2001,2);
+sz = [2,30]; %size of the ensemble
+for ie = 1:2
+    for im = 1:sz(2)
+        tt = ss(ie,im).t;
+        pp = ss(ie, im).pc;
+        p = plot(ax(7), tt(1:20:end), pp(1:20:end), 'linewidth', 1, 'HandleVisibility','off');
+        p.Color = [colmapg(ie,:),0.15];
+        pc_mean(:,ie) = pc_mean(:,ie) + pp;
+        
+    end
+
+end
+
+pc_mean = pc_mean/sz(2);
+for ie = 1:2   
+    plot(ax(7), tt(1:20:end),pc_mean(1:20:end,ie), 'linewidth', 1.75, 'color', colmapg(ie,:));
+end
+plot(ax(7), tt(1:20:end),-500 + tt(1:20:end), '--','linewidth', 1.25, 'color', colmapg(1,:), 'HandleVisibility','off'); %add the anthro trend
+plot(ax(7), tt(1:20:end),-500*ones(size(tt(1:20:end))), '--','linewidth', 1.25, 'color', colmapg(2,:), 'HandleVisibility','off'); %add the natural trend
+
+ax(7).XLim = [0, 100];
+ax(7).YLim = [-700, -300];
+ax(7).XLabel.String = 'time (yrs)';
+ax(7).YLabel.String = 'pycnocline depth (m)';
+%ylim([-750, -250]);
+ax(7).YTick = -900:200:-100;
+ax(7).XTick = 0:20:100;
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%% Make panel g: SLR at t = 100 for different M and realization %%%%%%%%%
+%%%% Make panel h: SLR at t = 100 for different M and realization %%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Ms        = 1:5; %correspond to M = 0.5:0.25:1.5
 Ms_act    = 0.5:0.25:1.5;
@@ -367,40 +412,36 @@ end
 end
 
 lw = 1.5;
-colmapg = lines(2); %colormap to differentiate between anthro and non
-colmapg(1,:) = [ 0,    0.45    0.84];
-colmapg(2,:) = [ 0.80    0.24    0.1];
-colmapg = nan(2,3);
-colmapg(1,:) = [255,152,51]/255;  %anthro
-colmapg(2,:) = [0,153, 153]/255; %counter
 
 %add cointerfactual results
 for i = 1:length(members)
      
-    plot(ax(7), Ms_act, squeeze(slrs(2,i,:)), '-','color',  colmapg(2,:), 'markerfacecolor',  colmap(2,:), 'linewidth', lw)
+    plot(ax(8), Ms_act, squeeze(slrs(2,i,:)), '-','color',  colmapg(2,:), 'markerfacecolor',  colmap(2,:), 'linewidth', lw)
 end
 
 %add anthro results
 for i = 1:length(members)
-    plot(ax(7), Ms_act, squeeze(slrs(1,i,:)), '-','color', colmapg(1,:), 'markerfacecolor', colmap(1,:), 'linewidth', lw)
+    plot(ax(8), Ms_act, squeeze(slrs(1,i,:)), '-','color', colmapg(1,:), 'markerfacecolor', colmap(1,:), 'linewidth', lw)
 end
 
 
 
-ax(7).XTick = Ms_act;
-ax(7).XLabel.Interpreter = 'latex';
-ax(7).XLabel.String = '$M$';
-ax(7).YTick = 0:4;
-ax(7).YLabel.String = 'sea level rise (mm)';
-ax(7).YLim = [-0.1, 4];
+ax(8).XTick = Ms_act;
+ax(8).XLabel.Interpreter = 'latex';
+ax(8).XLabel.String = '$M$';
+ax(8).YTick = 0:4;
+ax(8).YLabel.String = 'sea level rise (mm)';
+ax(8).YLim = [-0.1, 4];
 
 % add the points in (g)
 for iM = 1:length(Ms)
-    scatter(ax(7),Ms_act(iM), finval(iM),80,colmap(iM,:), 'Filled' , 'MarkerEdgeColor', 'none')
+    scatter(ax(8),Ms_act(iM), finval(iM),80,colmap(iM,:), 'Filled' , 'MarkerEdgeColor', 'none')
 end
+%legend(ax(8), {'anthropogenic trend', 'no trend'}, 'FontSize', 16, 'Location', 'SouthEast')
+
 
 
 %% final tidying
 
 fig = gcf; 
-fig.Position(3:4) = [1080, 620];
+fig.Position(3:4) = [1080, 710];

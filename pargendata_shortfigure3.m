@@ -1,4 +1,4 @@
-% Generate data to produce figure 8. Produces variables:
+% Generate data to produce figure 3. Produces variables:
 % (1) mean_pdfs, size (nt x ne x nx), the mean probability distribution 
 % (2) vals, size (nt x ne x nm x nx), value of probabilities.
 % (3) is_significant_ptX (nt x ne x nx) boolean matrices, showing whether

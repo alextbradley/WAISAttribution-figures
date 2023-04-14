@@ -1,5 +1,5 @@
-% Make supplementary figure "B" of the manuscript showing contour plots of
-% melt rate at timeslices for different M values.
+% Make figure 5 of the manuscript showing:
+% Table of contour plots of melt rate at timeslices for different M values.
 
 %
 % 24/02/23, ATB (aleey@bas.ac.uk), MIT license
@@ -126,11 +126,10 @@ c.Location = 'southoutside';
 c.Position(3) = 0.3;
 c.FontSize = 14;
 c.Label.String = 'melt rate (m/yr)';
-c.FontName = 'Arial';
+c.FontName = 'GillSans';
 c.Position(2) = 0.08;
 c.Position(1) = 0.5;
 c.Position(4) = 0.015;
-
 
 %% Make a plot of the forcing (vertical)
 fig2 = figure(2); clf; hold on; box on
@@ -150,10 +149,10 @@ axs.YLim = [0,100];
 axs.YTick = 0:20:100;
 axs.YTickLabel = {};
 axs.FontSize = 14;
-axs.FontName ='Arial';
+axs.FontName ='GillSans';
 axs.XLim = [-800, -200];
 axs.XTick = [-800,-500,-200];
-axs.XLabel.String = '$\mathcal{P}_c(t)$'; 
+axs.XLabel.String = '$\mathcal{F}_i(t)$'; 
 axs.XLabel.Interpreter = 'latex';
 
 % add timeslices

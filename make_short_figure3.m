@@ -1,19 +1,23 @@
 % Make figure 3 of the manuscript showing (a) calibrated distributions of
 % sea level rise through time for both anthropogenic and counterfactual
-% ensembles and (b) the ensemble mean and standard deviation of the two
-% distributions
+% ensembles and (b)--(d) summary statistics of the two distributions with
+% and without calibration. 
 %
 % 27/02/23, ATB (aleey@bas.ac.uk), MIT licence
 %
 
 %% Preliminaries
 % load in the data
-pdata = load('shortfigure3-data.mat');
+pdata = load('shortfigure-3data.mat');
 
 addpath('plottools');
 colmap = nan(2,3);
 colmap(1,:) = [255,152,51]/255;  %anthro
 colmap(2,:) = [0,153, 153]/255; %counter
+
+% for poster
+% colmap(2,:) = [7,54,80]/255; %dark blue
+% colmap(1,:) = [248,200,44]/255; %yellow
 
 %% Plot setup
 fig = figure(1); clf;
