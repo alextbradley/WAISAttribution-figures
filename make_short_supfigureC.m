@@ -48,7 +48,7 @@ end
 %
 % Get the results for the no-melt stage of the calibration
 %
-fpath = strcat('data/ATTR_00000/outfile.nc');
+fpath = strcat('data/ATTR_00000_outfile.nc');
 bed   = ncread(fpath, 'b', [1, 1, 1], [Inf, Inf, 1]); %bed topo
 h     = ncread(fpath, 'h', [1, 1, 1], [Inf,Inf,Inf]); %ice thickness
 h     = squeeze(h(:,:,end)); %ice thickness at the final timestep (in steady state)
@@ -75,7 +75,7 @@ tf       = cell(sz);  %times
 grv      = cell(sz);  %grounded volume values
 for i = 1:sz(2)
 	%filename
-	fname =  strcat('data/ATTR_', run_nums(i), '/outfile.nc');
+	fname =  strcat('data/ATTR_', run_nums(i), '_outfile.nc');
 
 	%get thickness, surface, grounded fraction and melt at final timestep
 	hh = ncread(fname, 'h', [1, 1, 1], [Inf,Inf,Inf]); %ice thickness
@@ -103,6 +103,7 @@ end
 %% Make panel c: ice cross sections zoomed in on shelf
 
 ns = 8; %smooth nmuber
+ny = 50; %number of grid cells in y
 % add the seabed
 fill(ax(3), [x/1e3; flip(x)/1e3], [-1200*ones(size(x)); flip(bed(:,floor(ny/2)))], [220,220,220]/256, 'linestyle', 'none','FaceAlpha', 0.75);
 
