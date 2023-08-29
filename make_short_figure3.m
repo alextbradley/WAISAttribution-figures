@@ -8,7 +8,7 @@
 
 %% Preliminaries
 % load in the data
-pdata = load('shortfigure-3data.mat');
+pdata = load('data/shortfigure-3data.mat');
 
 addpath('plottools');
 colmap = nan(2,3);
@@ -177,7 +177,7 @@ plot(ax(4), t, smooth(kurtosises(:,2),5), 'linewidth', 2, 'color', colmap(2,:));
 %ax(3).YLim = [0,6];
 
 %% Repeat for the uncalibrated data 
-pdata_uncalib = load('shortfigure3-uncalibdata.mat');
+pdata_uncalib = load('data/shortfigure3-uncalibdata.mat');
 t_uncalib            = pdata_uncalib.t;
 anth_mean_pdf_allt_uncalib = squeeze(pdata_uncalib.mean_pdfs(:,1, 1:nxs:end));
 nat_mean_pdf_allt_uncalib = squeeze(pdata_uncalib.mean_pdfs(:,2, 1:nxs:end));
