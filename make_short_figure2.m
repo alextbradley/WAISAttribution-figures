@@ -95,8 +95,8 @@ colmapg = nan(2,3);
 colmapg(1,:) = [255,152,51]/255;  %anthro
 colmapg(2,:) = [0,153, 153]/255; %counter
 % for poster
-colmapg(2,:) = [7,54,125]/255; %dark blue
-colmapg(1,:) = [248,200,44]/255; %yellow
+% colmapg(2,:) = [7,54,125]/255; %dark blue
+% colmapg(1,:) = [248,200,44]/255; %yellow
 
 
 for i = 1:8
@@ -297,12 +297,12 @@ ax(5).YLabel.Interpreter = 'latex';
 
 %
 % preliminary stuff
-%ice_data = load('data/WAVI-ensemble-data.mat'); ice_data = ice_data.ss;
+ice_data = load('data/WAVI-ensemble-data.mat'); ice_data = ice_data.ss;
 dx = 1e3;
 dy = 1e3;
 rhoi = 918;  %ice density
 rhow = 1028; %water density
-fpath = strcat('data/ATTR_00000/outfile.nc');
+fpath = strcat('data/ATTR_00000_outfile.nc');
 bed   = ncread(fpath, 'b', [1, 1, 1], [Inf, Inf, 1]);
 float_thick = abs(rhow/rhoi *bed); %thickness at which floatation occurs
 %get slr data
