@@ -366,10 +366,12 @@ end
 
 pc_mean = pc_mean/sz(2);
 for ie = 1:2   
-    plot(ax(7), tt(1:20:end),pc_mean(1:20:end,ie), 'linewidth', 1.75, 'color', colmapg(ie,:));
+    plot(ax(7), tt(1:20:end),pc_mean(1:20:end,ie), '--',  'linewidth', 1.75, 'color', colmapg(ie,:));
+    % add the running trend 
+    plot(ax(7), tt(1:20:end),smooth(pc_mean(1:20:end,ie),10), '--', 'linewidth', 1.75, 'color', colmapg(ie,:));
 end
-plot(ax(7), tt(1:20:end),-500 + tt(1:20:end), '--','linewidth', 1.25, 'color', colmapg(1,:), 'HandleVisibility','off'); %add the anthro trend
-plot(ax(7), tt(1:20:end),-500*ones(size(tt(1:20:end))), '--','linewidth', 1.25, 'color', colmapg(2,:), 'HandleVisibility','off'); %add the natural trend
+%plot(ax(7), tt(1:20:end),-500 + tt(1:20:end), '--','linewidth', 1.25, 'color', colmapg(1,:), 'HandleVisibility','off'); %add the anthro trend
+%plot(ax(7), tt(1:20:end),-500*ones(size(tt(1:20:end))), '--','linewidth', 1.25, 'color', colmapg(2,:), 'HandleVisibility','off'); %add the natural trend
 
 ax(7).XLim = [0, 100];
 ax(7).YLim = [-700, -300];

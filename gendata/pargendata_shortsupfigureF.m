@@ -1,38 +1,38 @@
-% Generate data to produce figure 3. Produces variables:
-% (1) mean_pdfs, size (nt x ne x nx), the mean probability distribution 
-% (2) vals, size (nt x ne x nm x nx), value of probabilities.
-% (3) is_significant_ptX (nt x ne x nx) boolean matrices, showing whether
-% the set of probabilities are significantly different from one another at
-% significance level X.
-% nt: number of time output points
-% ne: number of ensemlbes (here 2)
-% nm: number of ensemble members (here 20)
-% nx: number of tagret slr points 
-%
-% NB: this script is as in gendata_figure8, but runs the loop in a parallel
-% way. 
-% 
-% Files save these, alongside time output points, in a file shortfigure-3data.mat
-%
-% NB this script takes ~O(10s) of minutes to run.
-%
-% ATB (aleey@bas.ac.uk), 17/3/23. MIT licence.
+% Generate data for supplmentary figure F of the manuscript, showing the
+% AER as a function of SLR and time for different values of sigma_g (called
+% sigma_P in the ms) and sigma_m (called sigma_L in the ms). Here, we
+% return a nm x ng structure named data_out (where nm is the number of
+% sigma_m values and ng the number of sigma_g values), each of which
+% contains fields:
+% x: slr values
+% t: time values
+% mean_pdfs: (size 2 x nx x nt) pdfs from the distributions. First 'row'
+% for anthro and second 'row' for counterfactual
 
-% 
+%% Preliminaries
+%
 % Parallel info
 %
 poolobj = gcp('nocreate');
 if ~isempty(poolobj);  delete(poolobj); end
 num_cpu=24;
+num_cpu=2;
 poolobj = parpool('local',num_cpu);
 
 %
 % Preliminaries
 %
-addpath('../plottools')
 addpath('..')
+addpath('../plottools')
 gendata = 1; %set to 1 to pass thru the gendata loop
-fs = 13; %plot fontsize
+
+%
+% Bayesian parameters
+%
+sigma_ms = [1,5,10,20];
+sigma_gs = [0.01, 0.1,0.2, 0.5];
+mu = 1.25;
+data_out = struct();
 
 %
 % load in wavi and mitgcm data
@@ -54,6 +54,7 @@ members     = 1:40;
 tshow       = 10:100; %time values to show SLR at
 timeslices  = [0,25,50,75,100]; %calibration times
 
+
 %length of arrays for conveniences
 lg = length(Ms);
 le = length(ensembles);
@@ -68,10 +69,7 @@ rhoi = 918;  %ice density
 rhow = 1028; %water density
 dx   = 1000;
 dy   = 1000; %grid resolution
-sigma_m = 10;
-sigma_g = 0.2;
-mu = 1.25;
-x = linspace(-1,4,1e4); %output points for SLR (i.e. target values). Need very fine resolution to capture situations with little sea level rise as a fucntion of M 
+x = linspace(-1,4,1e4); %output points for SLR (i.e. target values). Need very fine resolution to capture situations with little sea level rise as a fucntion of M
 
 %
 % get the bathymetry
@@ -81,6 +79,7 @@ fpath = strcat('../data/ATTR_00000_outfile.nc');
 bed   = ncread(fpath, 'b', [1, 1, 1], [Inf, Inf, 1]);
 float_thick = abs(rhow/rhoi *bed); %thickness at which floatation occurs
 
+%% Get the SLR data
 %
 % Loop thru an get SLR for each ensemble, each member, for each gamma,
 % at each time, as well as calibration data
@@ -116,85 +115,75 @@ for ie = 1:le
 
                 %get the mitgcm melt rates
                 m_mit = ss_mit(ig,ie,im,itc).m;
-             
+
                 %get the wavi melt rate
                 m_wavi = ss_wavi(ig,ie,im).m(:,:,tidx); %ice model melt rate
-                
-              
+
+
                 %get the calibration coefficient assoc w/ this timeslice
                 hh = ss_wavi(ig,ie,im).h(:,:,tidx); %ice thickness at this point
                 D_here(itc) = get_D(m_mit,m_wavi,hh); %mean over 'calibration points'
                 allD(ie,im,ig,itc) = D_here(itc);
-                
+
             end %end loop over timeslice claibration points
-            Dbar(ie,im,ig) = mean((D_here)); %mean over the timeslices   
+            Dbar(ie,im,ig) = mean((D_here)); %mean over the timeslices
 
         end %end loop over gamma values
     end %end loop over members
 end %end loop over ensembles
 
-%% get slr curve for each realization of forcing
+%% Loop over different sigma_P and sigma_L values
+for isigma_m = 1:length(sigma_ms)
+    for isigma_g = 1:length(sigma_gs)
+        pslr_data = struct;
+        count = 1;
 
-pslr_data = struct;
-count = 1;
+        for ie = 1:le
+            for im =1:lm
+                %subplot(le,10, count); hold on; box on
+                parfor it = 1:lt
 
-clf;
-for ie = 1:le 
-    for im =1:lm
-        %subplot(le,10, count); hold on; box on
-        parfor it = 1:lt
-            
-            slrs = [slr_data(ie,im,:,it).slr];
-            D = squeeze(Dbar(ie,im,:));
-            pslr = get_pslr(x, slrs, Ms_act, D', sigma_m, sigma_g, mu);
-            pslr_data(ie,im,it).pslr = pslr;
-             
-           %  plot(x,pslr ); 
-           %  ylim([0,3])
-            
-        end
-        count = count + 1 %, drawnow; pause 
-    end
-
-end
+                    slrs = [slr_data(ie,im,:,it).slr];
+                    D = squeeze(Dbar(ie,im,:));
+                    pslr = get_pslr(x, slrs, Ms_act, D', sigma_ms(isigma_m), sigma_gs(isigma_g), mu);
+                    pslr_data(ie,im,it).pslr = pslr;
 
 
-
-
-%% store all values of slr
-vals = nan(lt,le,lm,length(x)); %for each x, store all associated values
-for it = 1:lt
-    for ie = 1:2
-        for ix = 1:length(x)
-            for im = 1:lm
-                vals(it,ie,im,ix) = pslr_data(ie,im,it).pslr(ix);
+                end
+                count = count + 1 %, drawnow; pause
             end
+
         end
-    end
-    it
 
-end
-mean_pdfs = squeeze(mean(vals,3));
 
-%% get the significance curves
-is_significant_pt1 = zeros(lt,length(x));
-is_significant_pt05 = zeros(lt,length(x));
-is_significant_pt01 = zeros(lt,length(x)); %store significance at different levels
-for it = 1:lt
-    for ix = 1:length(x)
-    
-        v1 = squeeze(vals(it,1,:,ix)); %all anthro members at this time and x
-        v2 = squeeze(vals(it,2,:,ix)); %all non anthro members
-        [~,h] = ranksum(v1, v2, 'Alpha', 0.1);
-        is_significant_pt1(it,ix) =  h;
-        [~,h] = ranksum(v1, v2, 'Alpha', 0.05);
-        is_significant_pt05(it,ix) =  h;
-        [~,h] = ranksum(v1, v2, 'Alpha', 0.01);
-        is_significant_pt01(it,ix) =  h;
-    end
-    it
-end
 
-%% save the output for use in figure 7
+
+        % store all values of slr
+        vals = nan(lt,le,lm,length(x)); %for each x, store all associated values
+        for it = 1:lt
+            for ie = 1:2
+                for ix = 1:length(x)
+                    for im = 1:lm
+                        vals(it,ie,im,ix) = pslr_data(ie,im,it).pslr(ix);
+                    end
+                end
+            end
+            it
+
+        end
+        mean_pdfs = squeeze(mean(vals,3));
+
+        %store the pdfs
+        data_out(isigma_m, isigma_g).mean_pdfs = mean_pdfs;
+        data_out(isigma_m, isigma_g).x = x;
+        data_out(isigma_m, isigma_g).t = tshow;
+
+
+    end %end loop over sigma_g
+end %end loop over sigma_m
+
+
+
+%% save the output
 t = tshow;
-save('shortfigure-3data.mat', "mean_pdfs", "vals", "t", "is_significant_pt1", "is_significant_pt05","is_significant_pt01", "x");
+save('shortshortsupfigure-Fdata.mat',"data_out");

@@ -6,9 +6,9 @@
 
 %% Preliminaries
 % load in the data
-%pdata = load('shortfigure-3data.mat');
-%wavdat = load('data/WAVI-ensemble-data.mat'); wavdat = wavdat.ss; %for use in the SLR curves
-load('shortfigure4-bootstrapdata.mat'); % load in bootstrapping data
+pdata = load('data/shortfigure-3data.mat'); %distribution data
+wavdat = load('data/WAVI-ensemble-data.mat'); wavdat = wavdat.ss; %for use in the SLR curves
+load('data/shortfigure4-bootstrapdata.mat'); % load in bootstrapping data
 
 addpath('plottools');
 
@@ -180,7 +180,7 @@ ie = 1;
 %
 % get stuff needed for the calculation
 %
-fpath = strcat('data/ATTR_00000/outfile.nc');
+fpath = strcat('data/ATTR_00000_outfile.nc');
 bed   = ncread(fpath, 'b', [1, 1, 1], [Inf, Inf, 1]); %bed topo
 float_thick = abs(1028/918 *bed);
 dx = 1e3; dy = 1e3;
