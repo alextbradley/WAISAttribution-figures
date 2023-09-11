@@ -177,6 +177,8 @@ for isigma_m = 1:length(sigma_ms)
         data_out(isigma_m, isigma_g).mean_pdfs = mean_pdfs;
         data_out(isigma_m, isigma_g).x = x;
         data_out(isigma_m, isigma_g).t = tshow;
+        data_out(isigma_m, isigma_g).sigma_L = sigma_ms(isigma_m);
+        data_out(isigma_m, isigma_g).sigma_P = sigma_gs(isigma_g);
 
 
     end %end loop over sigma_g
