@@ -297,7 +297,7 @@ ax(5).YLabel.Interpreter = 'latex';
 
 %
 % preliminary stuff
-ice_data = load('data/WAVI-ensemble-data.mat'); ice_data = ice_data.ss;
+ice_data = load('data/WAVI-ensemble-data.mat'); ice_data = ice_data.ss; %load the ice sheet run data in
 dx = 1e3;
 dy = 1e3;
 rhoi = 918;  %ice density

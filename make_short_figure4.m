@@ -167,7 +167,6 @@ AERrad = (AER_lower > 1);
 AERrad_20 = (AER_lower_20 > 1);
 
 %contour(ax(1), xx,t,smooth2a(AERrad, 2, nsmooth), [0.5,0.5],'color','k', 'linewidth', 1.5)
-
 %% Make (b) showing different trajectories
 %
 % trajectory info

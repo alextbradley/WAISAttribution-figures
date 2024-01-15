@@ -8,7 +8,8 @@ function pslr = get_pslr(x, slr, gamma, D, sigma_m, sigma_g, mu)
 %           sea level rise as a function of gamma (at a given time)
 %
 % gamma :   (ng x 1) array
-%           gamma values which return slr values above
+%           gamma values which return slr values above (plays the role of M
+%           in the paper)
 %
 % D :       (ng x 1) array
 %           errors in melting
